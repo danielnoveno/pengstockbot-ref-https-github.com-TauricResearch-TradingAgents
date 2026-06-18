@@ -1,0 +1,21 @@
+# AI Trading Assistant Dependencies
+# Core
+fastapi>=0.115.0
+uvicorn>=0.34.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# Market Data
+yfinance>=0.2.40
+pandas>=2.0.0
+numpy>=1.24.0
+requests>=2.31.0
+
+# Notifications
+# (requests sudah di atas)
+
+# Dashboard
+jinja2>=3.1.0
+
+# Scheduler
+schedule>=1.2.0

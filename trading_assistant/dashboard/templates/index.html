@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trading Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0e17; color: #e0e0e0; }
+
+        .header { background: linear-gradient(135deg, #1a1f2e, #0d1117); padding: 20px 30px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 24px; color: #58a6ff; }
+        .header .status { display: flex; gap: 15px; align-items: center; }
+        .header .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #3fb950; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .full-width { grid-column: 1 / -1; }
+
+        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
+        .card h2 { font-size: 16px; color: #58a6ff; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+
+        .price-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+        .price-card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s; }
+        .price-card:hover { border-color: #58a6ff; transform: translateY(-2px); }
+        .price-card .ticker { font-weight: bold; font-size: 14px; color: #f0f6fc; }
+        .price-card .price { font-size: 18px; font-weight: bold; margin: 5px 0; }
+        .price-card .change { font-size: 13px; padding: 2px 6px; border-radius: 4px; }
+        .price-card .change.up { color: #3fb950; background: rgba(63, 185, 80, 0.1); }
+        .price-card .change.down { color: #f85149; background: rgba(248, 81, 73, 0.1); }
+
+        .alert-list { max-height: 300px; overflow-y: auto; }
+        .alert-item { padding: 10px; border-bottom: 1px solid #21262d; font-size: 13px; }
+        .alert-item:last-child { border-bottom: none; }
+        .alert-item.critical { border-left: 3px solid #f85149; }
+        .alert-item.warning { border-left: 3px solid #d29922; }
+        .alert-item.info { border-left: 3px solid #58a6ff; }
+        .alert-time { color: #8b949e; font-size: 11px; }
+
+        .market-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+        .market-item { text-align: center; padding: 10px; background: #0d1117; border-radius: 8px; }
+        .market-item .name { font-size: 12px; color: #8b949e; }
+        .market-item .value { font-size: 16px; font-weight: bold; margin: 5px 0; }
+        .market-item .change { font-size: 13px; }
+        .market-item .change.up { color: #3fb950; }
+        .market-item .change.down { color: #f85149; }
+
+        .btn { padding: 8px 16px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #c9d1d9; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .btn:hover { background: #30363d; border-color: #58a6ff; }
+        .btn-primary { background: #238636; border-color: #238636; color: white; }
+        .btn-primary:hover { background: #2ea043; }
+
+        .controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .add-form { display: flex; gap: 10px; }
+        .add-form input { padding: 8px 12px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; flex: 1; }
+
+        .analysis-panel { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin-top: 10px; }
+        .analysis-panel pre { white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+
+        .trending-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #21262d; }
+        .trending-item:last-child { border-bottom: none; }
+
+        .notification-status { display: flex; gap: 15px; }
+        .notif-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; }
+        .notif-badge.active { background: rgba(63, 185, 80, 0.2); color: #3fb950; }
+        .notif-badge.inactive { background: rgba(139, 148, 158, 0.2); color: #8b949e; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0d1117; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+        .loading { text-align: center; padding: 20px; color: #8b949e; }
+        .error { color: #f85149; padding: 10px; background: rgba(248,81,73,0.1); border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 AI Trading Assistant</h1>
+        <div class="status">
+            <div class="notification-status" id="notif-status"></div>
+            <div class="status-dot"></div>
+            <span style="color: #3fb950;">Online</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Market Overview -->
+        <div class="card full-width">
+            <h2>🌍 Market Overview</h2>
+            <div class="market-overview" id="market-overview">
+                <div class="loading">Memuat data market...</div>
+            </div>
+        </div>
+
+        <!-- Watchlist Prices -->
+        <div class="card full-width">
+            <h2>📊 Watchlist Prices</h2>
+            <div class="controls">
+                <div class="add-form">
+                    <input type="text" id="add-ticker" placeholder="Tambah ticker (ex: BBCA.JK)">
+                    <button class="btn btn-primary" onclick="addTicker()">+ Tambah</button>
+                </div>
+                <button class="btn" onclick="scanNow()">🔄 Scan Now</button>
+                <button class="btn" onclick="refreshPrices()">🔃 Refresh</button>
+            </div>
+            <div class="price-grid" id="price-grid">
+                <div class="loading">Memuat harga...</div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="card">
+            <h2>🚨 Alerts</h2>
+            <div class="alert-list" id="alert-list">
+                <div class="loading">Memuat alerts...</div>
+            </div>
+        </div>
+
+        <!-- Trending -->
+        <div class="card">
+            <h2>🔥 Trending</h2>
+            <div id="trending-list">
+                <div class="loading">Memuat trending...</div>
+            </div>
+        </div>
+
+        <!-- Analysis Panel -->
+        <div class="card full-width">
+            <h2>🤖 AI Analysis</h2>
+            <div class="controls">
+                <input type="text" id="analyze-ticker" placeholder="Ticker untuk dianalisis (ex: BBCA.JK)" style="flex:1; padding:8px 12px; border:1px solid #30363d; border-radius:6px; background:#0d1117; color:#c9d1d9;">
+                <button class="btn btn-primary" onclick="analyzeNow()">🧠 Analisis Sekarang</button>
+            </div>
+            <div class="analysis-panel" id="analysis-panel">
+                <pre>Masukkan ticker dan klik Analisis untuk menjalankan AI multi-agent analysis.</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+
+        async function fetchJSON(url) {
+            try {
+                const res = await fetch(API + url);
+                return await res.json();
+            } catch(e) {
+                console.error('Fetch error:', url, e);
+                return null;
+            }
+        }
+
+        async function refreshPrices() {
+            const data = await fetchJSON('/api/prices');
+            const grid = document.getElementById('price-grid');
+            if (!data || Object.keys(data).length === 0) {
+                grid.innerHTML = '<div class="loading">Belum ada data harga. Klik Scan Now.</div>';
+                return;
+            }
+
+            grid.innerHTML = Object.entries(data).map(([ticker, info]) => {
+                const change = info.change_pct || 0;
+                const cls = change >= 0 ? 'up' : 'down';
+                const sign = change >= 0 ? '+' : '';
+                const priceStr = ticker.includes('.JK')
+                    ? `Rp${(info.price || 0).toLocaleString('id-ID')}`
+                    : `$${(info.price || 0).toLocaleString('en-US', {minimumFractionDigits:2})}`;
+                return `
+                    <div class="price-card" onclick="showAnalysis('${ticker}')">
+                        <div class="ticker">${ticker}</div>
+                        <div class="price">${priceStr}</div>
+                        <div class="change ${cls}">${sign}${change.toFixed(2)}%</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function refreshAlerts() {
+            const data = await fetchJSON('/api/alerts?limit=30');
+            const list = document.getElementById('alert-list');
+            if (!data || data.length === 0) {
+                list.innerHTML = '<div class="loading">Tidak ada alerts</div>';
+                return;
+            }
+
+            list.innerHTML = data.map(a => `
+                <div class="alert-item ${a.severity || 'info'}">
+                    <div>${a.message}</div>
+                    <div class="alert-time">${a.created_at || ''}</div>
+                </div>
+            `).join('');
+        }
+
+        async function refreshMarketOverview() {
+            const data = await fetchJSON('/api/market-overview');
+            const el = document.getElementById('market-overview');
+            if (!data || Object.keys(data).length === 0) {
+                el.innerHTML = '<div class="loading">Gagal memuat market overview</div>';
+                return;
+            }
+
+            el.innerHTML = Object.entries(data).map(([name, info]) => `
+                <div class="market-item">
+                    <div class="name">${name}</div>
+                    <div class="value">${info.status || ''} ${info.price?.toLocaleString() || '-'}</div>
+                    <div class="change ${info.change_pct >= 0 ? 'up' : 'down'}">
+                        ${info.change_pct >= 0 ? '+' : ''}${info.change_pct?.toFixed(2) || 0}%
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function refreshNotifStatus() {
+            const data = await fetchJSON('/api/notifications/status');
+            const el = document.getElementById('notif-status');
+            if (!data) return;
+
+            el.innerHTML = (data.channels || []).map(ch =>
+                `<span class="notif-badge active">✓ ${ch}</span>`
+            ).join('');
+
+            if (data.channels.length === 0) {
+                el.innerHTML = '<span class="notif-badge inactive">Tidak ada channel aktif</span>';
+            }
+        }
+
+        async function scanNow() {
+            try {
+                const res = await fetch(API + '/api/scan', { method: 'POST' });
+                const data = await res.json();
+                alert(`Scan selesai! ${data.prices_count} harga, ${data.alerts_count} alerts`);
+                refreshPrices();
+                refreshAlerts();
+            } catch(e) {
+                alert('Gagal scan: ' + e.message);
+            }
+        }
+
+        async function addTicker() {
+            const input = document.getElementById('add-ticker');
+            const ticker = input.value.trim().toUpperCase();
+            if (!ticker) return;
+
+            try {
+                await fetch(API + '/api/watchlist/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker })
+                });
+                input.value = '';
+                alert(`${ticker} ditambahkan ke watchlist`);
+                refreshPrices();
+            } catch(e) {
+                alert('Gagal: ' + e.message);
+            }
+        }
+
+        async function analyzeNow() {
+            const ticker = document.getElementById('analyze-ticker').value.trim().toUpperCase();
+            if (!ticker) { alert('Masukkan ticker'); return; }
+
+            const panel = document.getElementById('analysis-panel');
+            panel.innerHTML = '<div class="loading">🧠 Sedang menganalisis ' + ticker + '... (mungkin butuh 1-2 menit)</div>';
+
+            try {
+                const res = await fetch(API + `/api/analyze/${ticker}`, { method: 'POST' });
+                const data = await res.json();
+
+                if (data.decision) {
+                    const icons = { BUY: '🟢 BELI', SELL: '🔴 JUAL', HOLD: '🟡 TAHAN' };
+                    panel.innerHTML = `
+                        <div style="margin-bottom:10px">
+                            <strong>Keputusan:</strong> ${icons[data.decision] || data.decision}
+                        </div>
+                        <pre>${data.summary || JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    panel.innerHTML = `<div class="error">${data.detail || 'Analisis gagal'}</div>`;
+                }
+            } catch(e) {
+                panel.innerHTML = `<div class="error">Error: ${e.message}</div>`;
+            }
+        }
+
+        function showAnalysis(ticker) {
+            document.getElementById('analyze-ticker').value = ticker;
+        }
+
+        // Auto-refresh
+        refreshPrices();
+        refreshAlerts();
+        refreshMarketOverview();
+        refreshNotifStatus();
+
+        setInterval(refreshPrices, 60000);
+        setInterval(refreshAlerts, 30000);
+        setInterval(refreshMarketOverview, 300000);
+    </script>
+</body>
+</html>
