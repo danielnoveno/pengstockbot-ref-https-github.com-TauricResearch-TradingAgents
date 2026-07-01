@@ -37,31 +37,6 @@ class PriceTracker:
             logger.warning(f"Gagal ambil harga {ticker}: {e}")
             return None
 
-    def get_news(self, ticker: str) -> str:
-        """Ambil berita terbaru untuk ticker DENGAN LINK."""
-        try:
-            stock = yf.Ticker(ticker)
-            news = stock.news
-            if not news:
-                return "Tidak ada berita terbaru."
-
-            lines = []
-            for n in news[:5]:
-                title = n.get("title", "")
-                publisher = n.get("publisher", "")
-                link = n.get("link", "")
-                if title:
-                    if link:
-                        lines.append(f"  [{title}]({link})")
-                    else:
-                        lines.append(f"  {title}")
-                    if publisher:
-                        lines.append(f"    Sumber: {publisher}")
-            return "\n".join(lines) if lines else "Tidak ada berita terbaru."
-        except Exception as e:
-            logger.warning(f"Gagal ambil berita {ticker}: {e}")
-            return "Gagal mengambil berita."
-
     def get_news_list(self, ticker: str) -> list[dict]:
         """Ambil berita sebagai list of dicts (untuk formatter)."""
         try:
@@ -136,21 +111,22 @@ class PriceTracker:
     def get_sentiment(self, ticker: str) -> str:
         """Quick sentiment check dari berita."""
         try:
+            from .. import config
+            
             stock = yf.Ticker(ticker)
             news = stock.news
             if not news:
                 return "Netral - tidak ada berita signifikan."
 
-            # Simple keyword-based sentiment
             positive_words = ["naik", "surge", "rally", "profit", "untung", "rekor", "bagus",
-                            "growth", "beli", "buy", "upgrade", "strong", "positif"]
+                              "growth", "beli", "buy", "upgrade", "strong", "positif", "bullish"]
             negative_words = ["turun", "jatuh", "crash", "rugi", "loss", "corporate", "masalah",
-                            "downgrade", "jual", "sell", "weak", "negatif", "risiko"]
+                              "downgrade", "jual", "sell", "weak", "negatif", "risiko", "bearish"]
 
             pos_count = 0
             neg_count = 0
-            for n in news[:5]:
-                title = n.get("title", "").lower()
+            for n in news[:config.MAX_NEWS_ITEMS]:
+                title = (n.get("title") or "").lower()
                 for w in positive_words:
                     if w in title:
                         pos_count += 1
@@ -169,17 +145,19 @@ class PriceTracker:
 
     def check_alerts(self, ticker: str, price_data: dict) -> list[dict]:
         """Cek apakah ada alert yang perlu dikirim - dengan data lengkap."""
+        from .. import config
+        
         alerts = []
         change = abs(price_data["change_pct"])
 
         # Get indicators and news for alerts
         indicators = None
-        news = ""
-        if change >= 2.5:
+        news = []
+        if change >= config.PRICE_CHANGE_ALERT:
             indicators = self.get_technical_indicators(ticker)
-            news = self.get_news(ticker)
+            news = self.get_news_list(ticker)
 
-        if change >= 5.0:
+        if change >= config.PRICE_CRITICAL_ALERT:
             alerts.append({
                 "ticker": ticker,
                 "type": "price_big_move",
@@ -190,7 +168,7 @@ class PriceTracker:
                 "news": news,
                 "needs_full_analysis": True,
             })
-        elif change >= 3.0:
+        elif change >= config.PRICE_CHANGE_ALERT:
             alerts.append({
                 "ticker": ticker,
                 "type": "price_alert",

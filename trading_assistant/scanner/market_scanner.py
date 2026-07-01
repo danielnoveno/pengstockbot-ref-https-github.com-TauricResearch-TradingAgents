@@ -1,87 +1,45 @@
 """Layer 2: Market scanner - deteksi trending, pola teknikal, dan berita."""
 
 import yfinance as yf
-import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
 from typing import Optional
 import logging
-import requests
 
 logger = logging.getLogger(__name__)
 
 
 class MarketScanner:
-    def __init__(self, db):
+    def __init__(self, db, price_tracker=None):
         self.db = db
+        self.price_tracker = price_tracker
 
     def get_technical_indicators(self, ticker: str) -> Optional[dict]:
-        """Hitung indikator teknikal: RSI, MACD, Moving Averages."""
-        try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="3mo")
-            if hist.empty or len(hist) < 20:
-                return None
-
-            close = hist['Close']
-
-            # RSI (14)
-            delta = close.diff()
-            gain = delta.where(delta > 0, 0).rolling(14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-            rs = gain / loss
-            rsi = 100 - (100 / (1 + rs))
-
-            # MACD
-            ema12 = close.ewm(span=12).mean()
-            ema26 = close.ewm(span=26).mean()
-            macd = ema12 - ema26
-            signal = macd.ewm(span=9).mean()
-            macd_hist = macd - signal
-
-            # Moving Averages
-            sma20 = close.rolling(20).mean()
-            sma50 = close.rolling(50).mean()
-
-            current = close.iloc[-1]
-            result = {
-                "ticker": ticker,
-                "price": round(float(current), 2),
-                "rsi": round(float(rsi.iloc[-1]), 2) if not np.isnan(rsi.iloc[-1]) else None,
-                "macd": round(float(macd.iloc[-1]), 4),
-                "macd_signal": round(float(signal.iloc[-1]), 4),
-                "macd_histogram": round(float(macd_hist.iloc[-1]), 4),
-                "sma20": round(float(sma20.iloc[-1]), 2) if not np.isnan(sma20.iloc[-1]) else None,
-                "sma50": round(float(sma50.iloc[-1]), 2) if not np.isnan(sma50.iloc[-1]) else None,
-                "above_sma20": bool(current > sma20.iloc[-1]) if not np.isnan(sma20.iloc[-1]) else None,
-                "above_sma50": bool(current > sma50.iloc[-1]) if not np.isnan(sma50.iloc[-1]) else None,
-                "macd_bullish": bool(macd.iloc[-1] > signal.iloc[-1]),
-                "timestamp": datetime.now().isoformat(),
-            }
-
-            # Signal assessment
-            signals = []
-            if result["rsi"] and result["rsi"] < 30:
-                signals.append("OVERSOLD (RSI < 30)")
-            elif result["rsi"] and result["rsi"] > 70:
-                signals.append("OVERBOUGHT (RSI > 70)")
-
-            if result["macd_bullish"]:
-                signals.append("MACD BULLISH CROSS")
-            else:
-                signals.append("MACD BEARISH")
-
-            if result["above_sma20"] and result["above_sma50"]:
-                signals.append("UPTREND (di atas MA20 & MA50)")
-            elif not result["above_sma20"] and not result["above_sma50"]:
-                signals.append("DOWNTREND (di bawah MA20 & MA50)")
-
-            result["signals"] = signals
-            return result
-
-        except Exception as e:
-            logger.warning(f"Gagal hitung indikator {ticker}: {e}")
+        """Hitung indikator teknikal — delegates to price_tracker."""
+        if self.price_tracker:
+            result = self.price_tracker.get_technical_indicators(ticker)
+        else:
+            # ponytail: fallback if price_tracker not injected (shouldn't happen)
+            result = None
+        if not result:
             return None
+        # Add signals and timestamp for scanner consumers
+        signals = []
+        rsi = result.get("rsi")
+        if rsi and rsi < 30:
+            signals.append("OVERSOLD (RSI < 30)")
+        elif rsi and rsi > 70:
+            signals.append("OVERBOUGHT (RSI > 70)")
+        if result.get("macd_bullish"):
+            signals.append("MACD BULLISH CROSS")
+        else:
+            signals.append("MACD BEARISH")
+        if result.get("above_sma20") and result.get("above_sma50"):
+            signals.append("UPTREND (di atas MA20 & MA50)")
+        elif not result.get("above_sma20") and not result.get("above_sma50"):
+            signals.append("DOWNTREND (di bawah MA20 & MA50)")
+        result["signals"] = signals
+        result["timestamp"] = datetime.now().isoformat()
+        return result
 
     def detect_volume_spike(self, ticker: str, threshold: float = 2.0) -> Optional[dict]:
         """Deteksi volume spike (volume > threshold x average)."""
@@ -112,21 +70,13 @@ class MarketScanner:
 
     def get_market_overview(self) -> dict:
         """Overview kondisi market global."""
-        indices = {
-            "IHSG": "^JKSE",
-            "S&P 500": "^GSPC",
-            "NASDAQ": "^IXIC",
-            "Dow Jones": "^DJI",
-            "Nikkei": "^N225",
-            "Hang Seng": "^HSI",
-            "BTC": "BTC-USD",
-        }
-
+        from .. import config
+        
         overview = {}
-        for name, ticker in indices.items():
+        for name, ticker in config.MARKET_INDICES.items():
             try:
                 stock = yf.Ticker(ticker)
-                hist = stock.history(period="2d")
+                hist = stock.history(period=config.DATA_PERIOD_SHORT)
                 if hist.empty:
                     continue
 
@@ -146,9 +96,11 @@ class MarketScanner:
 
     def scan_trending(self, tickers: list[str]) -> list[dict]:
         """Scan semua ticker untuk deteksi trending/pola menarik."""
+        from .. import config
+        
         trending = []
 
-        for ticker in tickers:
+        for ticker in tickers[:config.MAX_TRENDING_DISPLAY]:
             indicators = self.get_technical_indicators(ticker)
             if not indicators:
                 continue

@@ -19,7 +19,6 @@ from trading_assistant.config import (
 from trading_assistant.database.db import Database
 from trading_assistant.scanner.price_tracker import PriceTracker
 from trading_assistant.scanner.market_scanner import MarketScanner
-from trading_assistant.scanner.hot_detector import HotDetector
 from trading_assistant.analysis.deep_analyzer import DeepAnalyzer
 from trading_assistant.analysis.report_formatter import ReportFormatter
 from trading_assistant.analysis.chart_generator import generate_full_chart
@@ -42,8 +41,7 @@ class TradingAssistant:
         self.db = Database(str(DATABASE_PATH))
         self.watchlist = WatchlistManager(self.db, config)
         self.price_tracker = PriceTracker(self.db)
-        self.scanner = MarketScanner(self.db)
-        self.hot_detector = HotDetector(self.db)
+        self.scanner = MarketScanner(self.db, price_tracker=self.price_tracker)
         self.analyzer = DeepAnalyzer(self.db, config)
         self.notifier = Notifier(config)
         self.formatter = ReportFormatter()
@@ -89,7 +87,7 @@ class TradingAssistant:
                 if abs(data.get("change_pct", 0)) >= 3:
                     try:
                         chart_path = generate_full_chart(ticker)
-                    except:
+                    except Exception:
                         pass
 
                 self.notifier.send(report, chart_path=chart_path)
@@ -138,10 +136,10 @@ class TradingAssistant:
                     if abs(data.get("change_pct", 0)) >= 3:
                         try:
                             chart_path = generate_full_chart(ticker)
-                        except:
+                        except Exception:
                             pass
 
-                    self.notifier.send(report, chart_path=chart_path)
+                self.notifier.send(report, chart_path=chart_path)
 
                 self._last_prices = prices
 
@@ -170,7 +168,7 @@ class TradingAssistant:
             overview = self.scanner.get_market_overview()
             tickers = self.watchlist.get_tickers()
             trending = self.scanner.scan_trending(tickers)
-            prices = self.price_tracker.get_prices_batch(tickers[:10])
+            prices = self.price_tracker.get_prices_batch(tickers[:config.MAX_TICKERS_SCAN])
             up = sum(1 for p in prices.values() if p.get("change_pct", 0) > 0)
             down = sum(1 for p in prices.values() if p.get("change_pct", 0) < 0)
             watchlist_summary = f"  {up} naik, {down} turun dari {len(prices)} saham"
@@ -183,8 +181,8 @@ class TradingAssistant:
     def evening_summary(self):
         try:
             tickers = self.watchlist.get_tickers()
-            prices = self.price_tracker.get_prices_batch(tickers)
-            alerts = self.db.get_recent_alerts(20)
+            prices = self.price_tracker.get_prices_batch(tickers[:config.MAX_TICKERS_SCAN])
+            alerts = self.db.get_recent_alerts(config.MAX_ALERTS_DISPLAY)
             trending = self.db.get_trending(hours=12)
             report = self.formatter.format_evening_summary(prices, alerts, trending)
             self.notifier.send(report)
@@ -217,9 +215,9 @@ class TradingAssistant:
         threading.Thread(target=self.price_check_loop, daemon=True).start()
         threading.Thread(target=self.scanner_loop, daemon=True).start()
 
-        # Scheduler
-        schedule.every().day.at("07:30").do(self.morning_briefing)
-        schedule.every().day.at("16:30").do(self.evening_summary)
+        # Scheduler - from config
+        schedule.every().day.at(config.MORNING_BRIEFING_TIME).do(self.morning_briefing)
+        schedule.every().day.at(config.EVENING_SUMMARY_TIME).do(self.evening_summary)
 
         def sched():
             while self._running:

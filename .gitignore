@@ -29,3 +29,6 @@ Thumbs.db
 
 # TradingAgents (clone separately)
 tradingagents/
+
+# Ponytail plugin (cloned)
+.opencode/plugins/ponytail/

@@ -256,20 +256,14 @@ class ReportFormatter:
         """Format analisis LENGKAP untuk satu saham - semua ada di satu pesan."""
         is_jk = ".JK" in ticker
 
-        # Company name mapping (sederhana)
-        company_names = {
-            "BBCA.JK": "Bank Central Asia (BCA)",
-            "BBRI.JK": "Bank Rakyat Indonesia (BRI)",
-            "BMRI.JK": "Bank Mandiri",
-            "TLKM.JK": "Telkom Indonesia",
-            "ASII.JK": "Astra International",
-            "UNVR.JK": "Unilever Indonesia",
-            "GOTO.JK": "GoTo Gojek Tokopedia",
-            "BREN.JK": "Barito Renewables",
-            "ICBP.JK": "Indofood CBP",
-            "ADRO.JK": "Adaro Energy",
-        }
-        company_name = company_names.get(ticker, ticker.replace(".JK", ""))
+        # Get company name dynamically
+        company_name = ticker.replace(".JK", "")
+        try:
+            import yfinance as yf
+            info = yf.Ticker(ticker).info
+            company_name = info.get("shortName", company_name)
+        except Exception:
+            pass
 
         lines = [
             f"📋 **ANALISIS LENGKAP: {ticker}**",

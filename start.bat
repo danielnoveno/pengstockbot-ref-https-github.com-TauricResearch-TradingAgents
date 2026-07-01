@@ -23,7 +23,7 @@ pip install -r requirements_assistant.txt -q
 :: Run
 echo.
 echo [*] Menjalankan AI Trading Assistant...
-echo     Dashboard: http://localhost:8080
+echo     Dashboard: http://localhost:8088
 echo     Tekan Ctrl+C untuk berhenti.
 echo.
 python -m trading_assistant.main

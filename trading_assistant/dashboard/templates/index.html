@@ -1,148 +1,1160 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Trading Assistant</title>
+    <title>AI Trading Terminal</title>
     <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a1f2e;
+            --bg-hover: #242b3d;
+            --border: #2d3548;
+            --text-primary: #e5e7eb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --orange: #f97316;
+            --orange-dim: #c2410c;
+            --green: #22c55e;
+            --red: #ef4444;
+            --blue: #3b82f6;
+            --yellow: #eab308;
+            --cyan: #06b6d4;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0e17; color: #e0e0e0; }
+        
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 13px;
+            overflow-x: hidden;
+        }
 
-        .header { background: linear-gradient(135deg, #1a1f2e, #0d1117); padding: 20px 30px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 24px; color: #58a6ff; }
-        .header .status { display: flex; gap: 15px; align-items: center; }
-        .header .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #3fb950; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        /* ── Top Bar ────────────────────────────────────── */
+        .topbar {
+            background: linear-gradient(180deg, #1a1f2e 0%, #111827 100%);
+            border-bottom: 2px solid var(--orange);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
-        .full-width { grid-column: 1 / -1; }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
 
-        .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; }
-        .card h2 { font-size: 16px; color: #58a6ff; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--orange);
+            letter-spacing: 2px;
+        }
 
-        .price-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-        .price-card { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; cursor: pointer; transition: all 0.2s; }
-        .price-card:hover { border-color: #58a6ff; transform: translateY(-2px); }
-        .price-card .ticker { font-weight: bold; font-size: 14px; color: #f0f6fc; }
-        .price-card .price { font-size: 18px; font-weight: bold; margin: 5px 0; }
-        .price-card .change { font-size: 13px; padding: 2px 6px; border-radius: 4px; }
-        .price-card .change.up { color: #3fb950; background: rgba(63, 185, 80, 0.1); }
-        .price-card .change.down { color: #f85149; background: rgba(248, 81, 73, 0.1); }
+        .logo span { color: var(--text-primary); }
 
-        .alert-list { max-height: 300px; overflow-y: auto; }
-        .alert-item { padding: 10px; border-bottom: 1px solid #21262d; font-size: 13px; }
-        .alert-item:last-child { border-bottom: none; }
-        .alert-item.critical { border-left: 3px solid #f85149; }
-        .alert-item.warning { border-left: 3px solid #d29922; }
-        .alert-item.info { border-left: 3px solid #58a6ff; }
-        .alert-time { color: #8b949e; font-size: 11px; }
+        .topbar-menu {
+            display: flex;
+            gap: 4px;
+        }
 
-        .market-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-        .market-item { text-align: center; padding: 10px; background: #0d1117; border-radius: 8px; }
-        .market-item .name { font-size: 12px; color: #8b949e; }
-        .market-item .value { font-size: 16px; font-weight: bold; margin: 5px 0; }
-        .market-item .change { font-size: 13px; }
-        .market-item .change.up { color: #3fb950; }
-        .market-item .change.down { color: #f85149; }
+        .topbar-menu button {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
 
-        .btn { padding: 8px 16px; border: 1px solid #30363d; border-radius: 6px; background: #21262d; color: #c9d1d9; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-        .btn:hover { background: #30363d; border-color: #58a6ff; }
-        .btn-primary { background: #238636; border-color: #238636; color: white; }
-        .btn-primary:hover { background: #2ea043; }
+        .topbar-menu button:hover,
+        .topbar-menu button.active {
+            background: var(--orange);
+            color: #000;
+            border-color: var(--orange);
+        }
 
-        .controls { display: flex; gap: 10px; margin-bottom: 15px; }
-        .add-form { display: flex; gap: 10px; }
-        .add-form input { padding: 8px 12px; border: 1px solid #30363d; border-radius: 6px; background: #0d1117; color: #c9d1d9; flex: 1; }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
 
-        .analysis-panel { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin-top: 10px; }
-        .analysis-panel pre { white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+        .clock {
+            color: var(--orange);
+            font-size: 14px;
+            font-weight: bold;
+        }
 
-        .trending-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #21262d; }
-        .trending-item:last-child { border-bottom: none; }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
-        .notification-status { display: flex; gap: 15px; }
-        .notif-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; }
-        .notif-badge.active { background: rgba(63, 185, 80, 0.2); color: #3fb950; }
-        .notif-badge.inactive { background: rgba(139, 148, 158, 0.2); color: #8b949e; }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite;
+        }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0d1117; }
-        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
 
-        .loading { text-align: center; padding: 20px; color: #8b949e; }
-        .error { color: #f85149; padding: 10px; background: rgba(248,81,73,0.1); border-radius: 6px; }
+        /* ── Notification Bell ──────────────────────────── */
+        .notif-bell {
+            position: relative;
+            cursor: pointer;
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 16px;
+            border-radius: 4px;
+            transition: all 0.15s;
+        }
+
+        .notif-bell:hover {
+            background: var(--bg-hover);
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+
+        .notif-count {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--red);
+            color: #fff;
+            font-size: 9px;
+            font-weight: bold;
+            min-width: 16px;
+            height: 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            display: none;
+        }
+
+        .notif-count.show { display: flex; }
+
+        .notif-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 380px;
+            max-height: 500px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            z-index: 200;
+            display: none;
+            overflow: hidden;
+        }
+
+        .notif-dropdown.show { display: block; }
+
+        .notif-header {
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notif-header-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--orange);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .notif-clear-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .notif-clear-btn:hover { color: var(--red); }
+
+        .notif-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notif-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(45,53,72,0.5);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .notif-item:hover { background: var(--bg-hover); }
+
+        .notif-item.unread {
+            border-left: 3px solid var(--orange);
+            background: rgba(249,115,22,0.05);
+        }
+
+        .notif-item-title {
+            font-size: 12px;
+            color: var(--text-primary);
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .notif-item-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notif-item-source {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .notif-item-time {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .notif-item-preview {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .notif-empty {
+            padding: 30px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* ── Tab Content ────────────────────────────────── */
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+
+        /* ── Main Grid ──────────────────────────────────── */
+        .main-grid {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 46px);
+            overflow: hidden;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .resize-handle {
+            background: var(--border);
+            z-index: 50;
+            flex-shrink: 0;
+        }
+
+        .resize-handle:hover, .resize-handle.active {
+            background: var(--orange);
+        }
+
+        .resize-v { width: 4px; cursor: col-resize; }
+        .resize-h { height: 4px; cursor: row-resize; }
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 300px;
+            overflow: hidden;
+        }
+
+        .left-panel .watchlist-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100px;
+            overflow: hidden;
+        }
+
+        .left-panel .analysis-panel {
+            height: 350px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-sidebar {
+            width: 320px;
+            min-width: 250px;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-sidebar .alerts-panel {
+            height: 150px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-sidebar .ai-panel {
+            height: 180px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .right-sidebar .news-panel {
+            flex: 1;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Hot News Animations ──────────────────────── */
+        @keyframes scroll-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        .hot-news-item {
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hot-news-item .source {
+            color: var(--orange);
+            font-size: 10px;
+        }
+
+        .hot-news-item .title {
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+
+        .impact-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            font-size: 9px;
+            font-weight: bold;
+            border-radius: 2px;
+        }
+
+        .impact-high { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+        .impact-medium { background: rgba(234, 179, 8, 0.2); color: var(--yellow); }
+        .impact-low { background: rgba(34, 197, 94, 0.2); color: var(--green); }
+
+        /* ── Market Overview Bar ────────────────────────── */
+        .market-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            display: flex;
+            gap: 24px;
+            overflow-x: auto;
+        }
+
+        .market-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .market-item .name { color: var(--text-muted); font-size: 11px; }
+        .market-item .value { font-weight: bold; }
+        .market-item .change { font-size: 11px; padding: 2px 6px; border-radius: 2px; }
+        .change.up { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+        .change.down { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+
+        /* ── Watchlist Panel ─────────────────────────────── */
+        .watchlist-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: var(--bg-card);
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--orange);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .panel-actions { display: flex; gap: 4px; }
+
+        .panel-btn {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 10px;
+        }
+
+        .panel-btn:hover { background: var(--orange); color: #000; }
+        .panel-btn.active { background: var(--orange); color: #000; }
+
+        /* ── Price Table ─────────────────────────────────── */
+        .price-table { flex: 1; overflow-y: auto; }
+        .price-table table { width: 100%; border-collapse: collapse; }
+
+        .price-table th {
+            background: var(--bg-card);
+            padding: 6px 8px;
+            text-align: left;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+        }
+
+        .price-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(45, 53, 72, 0.5);
+            white-space: nowrap;
+        }
+
+        .price-table tr { cursor: pointer; transition: background 0.1s; }
+        .price-table tr:hover { background: var(--bg-hover); }
+        .price-table tr.selected { background: rgba(249, 115, 22, 0.1); border-left: 2px solid var(--orange); }
+
+        .ticker-cell { font-weight: bold; color: var(--cyan); }
+        .price-cell { text-align: right; font-weight: bold; }
+        .change-cell { text-align: right; font-weight: bold; }
+        .volume-cell { text-align: right; color: var(--text-muted); }
+
+        /* ── Analysis Panel ──────────────────────────────── */
+        .analysis-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .analysis-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .indicator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .indicator-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .indicator-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+        .indicator-value { font-size: 16px; font-weight: bold; margin-top: 2px; }
+        .indicator-signal { font-size: 10px; margin-top: 2px; }
+        .signal-buy { color: var(--green); }
+        .signal-sell { color: var(--red); }
+        .signal-neutral { color: var(--yellow); }
+
+        /* ── Watchlist Input ─────────────────────────────── */
+        .watchlist-input {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 8px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .watchlist-input input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 8px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        .watchlist-input input:focus { outline: none; border-color: var(--orange); }
+
+        .watchlist-input button {
+            background: var(--orange);
+            border: none;
+            color: #000;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        /* ── Alerts Panel ────────────────────────────────── */
+        .alerts-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .alert-list { flex: 1; overflow-y: auto; }
+
+        .alert-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(45, 53, 72, 0.5);
+            border-left: 3px solid transparent;
+        }
+
+        .alert-item.critical { border-left-color: var(--red); background: rgba(239, 68, 68, 0.05); }
+        .alert-item.warning { border-left-color: var(--yellow); background: rgba(234, 179, 8, 0.05); }
+        .alert-item.info { border-left-color: var(--blue); }
+        .alert-time { font-size: 10px; color: var(--text-muted); }
+        .alert-message { margin-top: 2px; }
+
+        /* ── AI Analysis Panel ───────────────────────────── */
+        .ai-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .ai-input {
+            display: flex;
+            gap: 4px;
+            padding: 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        .ai-input input {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 8px;
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        .ai-input button {
+            background: var(--blue);
+            border: none;
+            color: #fff;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* ── Command Line ────────────────────────────────── */
+        .command-bar {
+            grid-column: 1 / -1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .command-prompt { color: var(--orange); font-weight: bold; }
+
+        .command-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        .command-input:focus { outline: none; }
+
+        /* ── Loading & Empty States ──────────────────────── */
+        .loading { text-align: center; padding: 20px; color: var(--text-muted); }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+
+        /* ── Scrollbar ───────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ── Tabs ────────────────────────────────────────── */
+        .tabs { display: flex; gap: 2px; padding: 4px; background: var(--bg-primary); }
+        .tab {
+            padding: 6px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+        }
+        .tab.active { background: var(--orange); color: #000; border-color: var(--orange); }
+
+        /* ── Notification Badges ─────────────────────────── */
+        .notif-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .notif-badge.active { background: rgba(34, 197, 94, 0.2); color: var(--green); }
+        .notif-badge.inactive { background: rgba(107, 114, 128, 0.2); color: var(--text-muted); }
+
+        /* ── Alerts Tab Full View ────────────────────────── */
+        .alerts-full {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .alerts-full .alert-list { flex: 1; overflow-y: auto; }
+
+        /* ── Analysis Tab Full View ──────────────────────── */
+        .analysis-full {
+            flex: 1;
+            display: flex;
+            gap: 0;
+            overflow: hidden;
+        }
+
+        .analysis-full .left-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .analysis-full .right-col {
+            width: 380px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Responsive ──────────────────────────────────── */
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto; }
+            .right-sidebar { display: none; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🤖 AI Trading Assistant</h1>
-        <div class="status">
-            <div class="notification-status" id="notif-status"></div>
-            <div class="status-dot"></div>
-            <span style="color: #3fb950;">Online</span>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo">AI<span>TRADER</span></div>
+            <div class="topbar-menu" id="topbar-menu">
+                <button class="active" onclick="showTab('watchlist', this)">WATCHLIST</button>
+                <button onclick="showTab('analysis', this)">ANALYSIS</button>
+                <button onclick="showTab('alerts', this)">ALERTS</button>
+                <button onclick="showTab('news', this)">NEWS</button>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="search-box" style="position:relative">
+                <input type="text" id="stock-search" placeholder="Search stock..." 
+                       style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:5px 10px;font-family:inherit;font-size:12px;width:180px"
+                       onkeyup="searchStock(this.value)" autocomplete="off">
+                <div id="search-results" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-secondary);border:1px solid var(--border);max-height:300px;overflow-y:auto;z-index:1000"></div>
+            </div>
+            <div id="notif-channels"></div>
+            <div style="position:relative">
+                <div class="notif-bell" onclick="toggleNotifDropdown()">
+                    &#128276;
+                    <span class="notif-count" id="notif-count">0</span>
+                </div>
+                <div class="notif-dropdown" id="notif-dropdown">
+                    <div class="notif-header">
+                        <span class="notif-header-title">NOTIFICATIONS</span>
+                        <button class="notif-clear-btn" onclick="clearAllNotifs()">Clear all</button>
+                    </div>
+                    <div class="notif-list" id="notif-list">
+                        <div class="notif-empty">No notifications yet</div>
+                    </div>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span style="color: var(--green)">LIVE</span>
+            </div>
+            <div class="clock" id="clock"></div>
         </div>
     </div>
 
-    <div class="container">
-        <!-- Market Overview -->
-        <div class="card full-width">
-            <h2>🌍 Market Overview</h2>
-            <div class="market-overview" id="market-overview">
-                <div class="loading">Memuat data market...</div>
+    <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+
+    <!-- Hot News Banner -->
+    <div id="hot-news-banner" style="display:none;background:linear-gradient(90deg,var(--bg-secondary),var(--bg-card));border-bottom:2px solid var(--orange);padding:8px 16px;position:relative">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div style="background:var(--red);color:#fff;padding:2px 8px;font-size:10px;font-weight:bold;animation:pulse 2s infinite">BREAKING</div>
+            <div style="flex:1;overflow:hidden">
+                <div id="hot-news-ticker" style="display:flex;gap:40px;animation:scroll-left 30s linear infinite"></div>
             </div>
+            <button onclick="toggleHotNewsDetail()" style="background:var(--blue);border:none;color:#fff;padding:4px 8px;font-size:10px;cursor:pointer">DETAIL</button>
+            <button onclick="closeHotNews()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:4px 8px;font-size:10px;cursor:pointer">&#10005;</button>
+        </div>
+        <div id="hot-news-detail" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px"></div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+        <div class="market-bar" id="market-bar">
+            <div class="loading">Loading market data...</div>
         </div>
 
-        <!-- Watchlist Prices -->
-        <div class="card full-width">
-            <h2>📊 Watchlist Prices</h2>
-            <div class="controls">
-                <div class="add-form">
-                    <input type="text" id="add-ticker" placeholder="Tambah ticker (ex: BBCA.JK)">
-                    <button class="btn btn-primary" onclick="addTicker()">+ Tambah</button>
+        <!-- ════════ TAB: WATCHLIST ════════ -->
+        <div class="tab-content active" id="tab-watchlist">
+            <div class="main-content">
+                <div class="left-panel" id="left-panel">
+                    <div class="watchlist-panel" id="watchlist-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Watchlist</span>
+                            <div class="panel-actions">
+                                <button class="panel-btn" onclick="scanNow()">SCAN</button>
+                                <button class="panel-btn" onclick="refreshPrices()">REFRESH</button>
+                            </div>
+                        </div>
+                        <div class="price-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <div style="display:flex;align-items:center;gap:8px">
+                                                Ticker
+                                                <select id="market-filter" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-family:inherit;font-size:10px;padding:1px 3px" onchange="filterByMarket()">
+                                                    <option value="ALL">ALL</option>
+                                                    <option value="IDX">INDO (.JK)</option>
+                                                    <option value="US">US</option>
+                                                    <option value="CRYPTO">CRYPTO</option>
+                                                </select>
+                                            </div>
+                                        </th>
+                                        <th style="text-align:right">Price</th>
+                                        <th style="text-align:right">Change</th>
+                                        <th style="text-align:right">Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="price-tbody">
+                                    <tr><td colspan="4" class="loading">Loading prices...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="resize-handle resize-h" id="resize-watchlist-tech"></div>
+                    <div class="analysis-panel" id="analysis-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Technical Analysis</span>
+                            <div class="panel-actions">
+                                <select id="chart-type" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-family:inherit;font-size:10px;padding:1px 3px" onchange="changeChartType()">
+                                    <option value="candlestick">Candle</option>
+                                    <option value="line">Line</option>
+                                    <option value="area">Area</option>
+                                </select>
+                                <span id="analysis-source" style="font-size:10px; color:var(--text-muted)"></span>
+                            </div>
+                        </div>
+                        <div id="chart-container" style="flex:1;min-height:100px;border-bottom:1px solid var(--border)"></div>
+                        <div class="analysis-content" id="analysis-content" style="height:120px;min-height:60px;overflow:auto;padding:8px">
+                            <div class="empty-state">Select a ticker to view analysis</div>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn" onclick="scanNow()">🔄 Scan Now</button>
-                <button class="btn" onclick="refreshPrices()">🔃 Refresh</button>
-            </div>
-            <div class="price-grid" id="price-grid">
-                <div class="loading">Memuat harga...</div>
+                <div class="resize-handle resize-v" id="resize-left-right"></div>
+                <div class="right-sidebar" id="right-sidebar">
+                    <div class="watchlist-input">
+                        <input type="text" id="add-ticker" placeholder="Add ticker..." onkeypress="if(event.key==='Enter')addTicker()">
+                        <button onclick="addTicker()">+ ADD</button>
+                    </div>
+                    <div class="alerts-panel" id="alerts-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">Alerts</span>
+                            <span class="panel-btn" onclick="refreshAlerts()">REFRESH</span>
+                        </div>
+                        <div class="alert-list" id="alert-list">
+                            <div class="loading">Loading alerts...</div>
+                        </div>
+                    </div>
+                    <div class="resize-handle resize-h" id="resize-alerts-ai"></div>
+                    <div class="ai-panel" id="ai-panel">
+                        <div class="panel-header"><span class="panel-title">AI Analysis</span></div>
+                        <div class="ai-content" id="ai-content">
+                            <div style="color: var(--text-muted);padding:8px">Enter a ticker and click Analyze for AI multi-agent analysis.</div>
+                        </div>
+                        <div class="ai-input">
+                            <input type="text" id="ai-ticker" placeholder="Ticker..." onkeypress="if(event.key==='Enter')analyzeAI()">
+                            <button onclick="analyzeAI()">ANALYZE</button>
+                        </div>
+                    </div>
+                    <div class="resize-handle resize-h" id="resize-ai-news"></div>
+                    <div class="news-panel" id="news-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">News</span>
+                            <div class="panel-actions">
+                                <select id="news-market" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);font-family:inherit;font-size:10px;padding:1px 3px" onchange="refreshNews()">
+                                    <option value="ALL">ALL</option>
+                                    <option value="IDX">INDO</option>
+                                    <option value="US">US</option>
+                                    <option value="CRYPTO">CRYPTO</option>
+                                    <option value="GLOBAL">GLOBAL</option>
+                                </select>
+                                <button class="panel-btn" onclick="analyzeNewsSentiment()" style="background:var(--blue)">AI</button>
+                                <button class="panel-btn" onclick="refreshNews()">&#8635;</button>
+                            </div>
+                        </div>
+                        <div id="news-sentiment" style="display:none;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg-secondary)"></div>
+                        <div id="news-list" style="flex:1;overflow:auto">
+                            <div class="loading">Loading news...</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Alerts -->
-        <div class="card">
-            <h2>🚨 Alerts</h2>
-            <div class="alert-list" id="alert-list">
-                <div class="loading">Memuat alerts...</div>
+        <!-- ════════ TAB: ANALYSIS ════════ -->
+        <div class="tab-content" id="tab-analysis">
+            <div class="analysis-full">
+                <div class="left-col">
+                    <div class="panel-header">
+                        <span class="panel-title">AI Multi-Agent Analysis</span>
+                    </div>
+                    <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;background:var(--bg-secondary)">
+                        <input type="text" id="ai-ticker2" placeholder="Enter ticker (e.g. BBCA.JK, AAPL, BTC-USD)" 
+                               style="flex:1;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;font-family:inherit;font-size:13px"
+                               onkeypress="if(event.key==='Enter')analyzeAI2()">
+                        <button onclick="analyzeAI2()" style="background:var(--blue);border:none;color:#fff;padding:8px 16px;cursor:pointer;font-family:inherit;font-weight:bold;font-size:12px">ANALYZE</button>
+                        <button onclick="quickTechAnalysis()" style="background:var(--orange);border:none;color:#000;padding:8px 16px;cursor:pointer;font-family:inherit;font-weight:bold;font-size:12px">QUICK TECH</button>
+                    </div>
+                    <div class="ai-content" id="ai-content2" style="flex:1;overflow-y:auto;padding:16px">
+                        <div class="empty-state" style="padding:60px 20px">
+                            <div style="font-size:40px;margin-bottom:12px">&#129302;</div>
+                            <div style="color:var(--orange);font-size:14px;margin-bottom:8px">AI TRADING ANALYSIS</div>
+                            <div style="font-size:12px;max-width:400px;margin:0 auto;line-height:1.6">
+                                Enter a ticker symbol above and click <b>ANALYZE</b> for full multi-agent AI analysis,
+                                or <b>QUICK TECH</b> for instant technical indicators.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="resize-handle resize-v"></div>
+                <div class="right-col">
+                    <div class="panel-header">
+                        <span class="panel-title">Analysis History</span>
+                        <button class="panel-btn" onclick="loadAnalysisHistory()">REFRESH</button>
+                    </div>
+                    <div id="analysis-history" style="flex:1;overflow-y:auto;padding:8px">
+                        <div class="notif-empty">Select a ticker to see analysis</div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Trending -->
-        <div class="card">
-            <h2>🔥 Trending</h2>
-            <div id="trending-list">
-                <div class="loading">Memuat trending...</div>
+        <!-- ════════ TAB: ALERTS ════════ -->
+        <div class="tab-content" id="tab-alerts">
+            <div class="alerts-full">
+                <div class="panel-header">
+                    <span class="panel-title">ALL ALERTS</span>
+                    <div class="panel-actions">
+                        <button class="panel-btn" onclick="refreshAllAlerts()">REFRESH</button>
+                        <button class="panel-btn" onclick="scanNow()">SCAN NOW</button>
+                    </div>
+                </div>
+                <div class="alert-list" id="all-alerts-list" style="flex:1;overflow-y:auto">
+                    <div class="loading">Loading all alerts...</div>
+                </div>
             </div>
         </div>
 
-        <!-- Analysis Panel -->
-        <div class="card full-width">
-            <h2>🤖 AI Analysis</h2>
-            <div class="controls">
-                <input type="text" id="analyze-ticker" placeholder="Ticker untuk dianalisis (ex: BBCA.JK)" style="flex:1; padding:8px 12px; border:1px solid #30363d; border-radius:6px; background:#0d1117; color:#c9d1d9;">
-                <button class="btn btn-primary" onclick="analyzeNow()">🧠 Analisis Sekarang</button>
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!--  TAB: NEWS                                          -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <div class="tab-content" id="tab-news">
+            <div style="display:flex;flex-direction:column;height:100%;padding:8px">
+                <!-- Top bar: filters + aggregate -->
+                <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+                    <select id="news-market-filter" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:4px 8px;font-size:11px;border-radius:4px" onchange="loadNewsTab()">
+                        <option value="ALL">ALL MARKETS</option>
+                        <option value="US">US</option>
+                        <option value="IDX">IDX</option>
+                        <option value="CRYPTO">CRYPTO</option>
+                        <option value="GLOBAL">GLOBAL</option>
+                    </select>
+                    <select id="news-sentiment-filter" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:4px 8px;font-size:11px;border-radius:4px" onchange="filterNewsList()">
+                        <option value="ALL">ALL SENTIMENT</option>
+                        <option value="POSITIVE">POSITIVE</option>
+                        <option value="NEGATIVE">NEGATIVE</option>
+                        <option value="NEUTRAL">NEUTRAL</option>
+                    </select>
+                    <select id="news-impact-filter" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:4px 8px;font-size:11px;border-radius:4px" onchange="filterNewsList()">
+                        <option value="ALL">ALL IMPACT</option>
+                        <option value="HIGH">HIGH</option>
+                        <option value="MEDIUM">MEDIUM</option>
+                        <option value="LOW">LOW</option>
+                    </select>
+                    <button class="panel-btn" onclick="loadNewsTab()">REFRESH</button>
+                    <div style="flex:1"></div>
+                    <div id="news-agg-bar" style="display:flex;gap:8px;font-size:11px"></div>
+                </div>
+
+                <!-- Main content: news list + suggestions sidebar -->
+                <div style="display:flex;gap:8px;flex:1;min-height:0">
+                    <!-- News list -->
+                    <div style="flex:2;display:flex;flex-direction:column;min-width:0">
+                        <div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px;display:flex;justify-content:space-between">
+                            <span id="news-count-label">LOADING...</span>
+                            <span id="news-loading-indicator"></span>
+                        </div>
+                        <div id="news-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+                    </div>
+
+                    <!-- Suggestions sidebar -->
+                    <div style="flex:1;min-width:220px;max-width:320px;display:flex;flex-direction:column;gap:6px">
+                        <div class="terminal-panel" style="flex:1;display:flex;flex-direction:column;min-height:0">
+                            <div class="panel-header" style="padding:6px 8px">
+                                <span class="panel-title" style="font-size:10px">&#9889; SUGGESTIONS</span>
+                            </div>
+                            <div id="news-suggestions" style="flex:1;overflow-y:auto;padding:6px 8px"></div>
+                        </div>
+                        <div class="terminal-panel" style="flex:1;display:flex;flex-direction:column;min-height:0">
+                            <div class="panel-header" style="padding:6px 8px">
+                                <span class="panel-title" style="font-size:10px">&#128202; TOPICS</span>
+                            </div>
+                            <div id="news-topics" style="flex:1;overflow-y:auto;padding:6px 8px"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="analysis-panel" id="analysis-panel">
-                <pre>Masukkan ticker dan klik Analisis untuk menjalankan AI multi-agent analysis.</pre>
-            </div>
+        </div>
+
+        <div class="resize-handle resize-h" id="resize-command"></div>
+        <div class="command-bar">
+            <span class="command-prompt">&#10095;</span>
+            <input type="text" class="command-input" id="command-input" 
+                   placeholder="Type command: scan, analyze [ticker], add [ticker], remove [ticker]..."
+                   onkeypress="if(event.key==='Enter')executeCommand()">
         </div>
     </div>
 
     <script>
         const API = '';
+        let selectedTicker = null;
 
+        // ═══════════════════════════════════════════════════
+        //  NOTIFICATIONS (localStorage)
+        // ═══════════════════════════════════════════════════
+        const NOTIF_KEY = 'aitrader_notifications';
+        const NOTIF_READ_KEY = 'aitrader_notif_read';
+
+        function getNotifs() {
+            try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || []; }
+            catch { return []; }
+        }
+
+        function saveNotifs(notifs) {
+            localStorage.setItem(NOTIF_KEY, JSON.stringify(notifs));
+        }
+
+        function getReadIds() {
+            try { return JSON.parse(localStorage.getItem(NOTIF_READ_KEY)) || []; }
+            catch { return []; }
+        }
+
+        function saveReadIds(ids) {
+            localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(ids));
+        }
+
+        function addNotif(title, preview, source, link) {
+            const notifs = getNotifs();
+            const id = Date.now() + '_' + Math.random().toString(36).slice(2,6);
+            // Deduplicate: skip if same title already exists
+            if (notifs.some(n => n.title === title)) return;
+            notifs.unshift({ id, title, preview: preview || '', source: source || '', link: link || '', time: Date.now() });
+            // Keep max 50
+            if (notifs.length > 50) notifs.length = 50;
+            saveNotifs(notifs);
+            updateNotifBadge();
+            renderNotifList();
+        }
+
+        function markNotifRead(id) {
+            const read = getReadIds();
+            if (!read.includes(id)) {
+                read.push(id);
+                if (read.length > 200) read.splice(0, 50);
+                saveReadIds(read);
+            }
+            updateNotifBadge();
+            renderNotifList();
+        }
+
+        function clearAllNotifs() {
+            saveNotifs([]);
+            saveReadIds([]);
+            updateNotifBadge();
+            renderNotifList();
+        }
+
+        function updateNotifBadge() {
+            const notifs = getNotifs();
+            const read = getReadIds();
+            const unread = notifs.filter(n => !read.includes(n.id)).length;
+            const badge = document.getElementById('notif-count');
+            if (!badge) return;
+            badge.textContent = unread;
+            badge.classList.toggle('show', unread > 0);
+        }
+
+        function renderNotifList() {
+            const el = document.getElementById('notif-list');
+            if (!el) return;
+            const notifs = getNotifs();
+            const read = getReadIds();
+            if (notifs.length === 0) {
+                el.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+                return;
+            }
+            el.innerHTML = notifs.map(n => {
+                const isUnread = !read.includes(n.id);
+                const ago = getTimeAgo(new Date(n.time).toISOString());
+                return `
+                    <div class="notif-item ${isUnread ? 'unread' : ''}" onclick="${n.link ? `window.open('${n.link}','_blank')` : ''};markNotifRead('${n.id}')">
+                        <div class="notif-item-title">${n.title}</div>
+                        ${n.preview ? `<div class="notif-item-preview">${n.preview}</div>` : ''}
+                        <div class="notif-item-meta">
+                            <span class="notif-item-source">${n.source}</span>
+                            <span class="notif-item-time">${ago}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleNotifDropdown() {
+            const dd = document.getElementById('notif-dropdown');
+            dd.classList.toggle('show');
+            if (dd.classList.contains('show')) {
+                renderNotifList();
+            }
+        }
+
+        // Close dropdown on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.notif-bell') && !e.target.closest('.notif-dropdown')) {
+                document.getElementById('notif-dropdown').classList.remove('show');
+            }
+        });
+
+        // ═══════════════════════════════════════════════════
+        //  TAB NAVIGATION
+        // ═══════════════════════════════════════════════════
+        function showTab(tab, btn) {
+            // Update buttons
+            document.querySelectorAll('#topbar-menu button').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            // Update panels
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+            const panel = document.getElementById('tab-' + tab);
+            if (panel) panel.classList.add('active');
+
+            // Load data for specific tabs
+            if (tab === 'alerts') refreshAllAlerts();
+            if (tab === 'analysis') loadAnalysisHistory();
+            if (tab === 'news') loadNewsTab();
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  CLOCK
+        // ═══════════════════════════════════════════════════
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', {hour12: false});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ═══════════════════════════════════════════════════
+        //  FETCH HELPER
+        // ═══════════════════════════════════════════════════
         async function fetchJSON(url) {
             try {
                 const res = await fetch(API + url);
+                if (!res.ok) throw new Error(res.statusText);
                 return await res.json();
             } catch(e) {
                 console.error('Fetch error:', url, e);
@@ -150,15 +1162,54 @@
             }
         }
 
-        async function refreshPrices() {
-            const data = await fetchJSON('/api/prices');
-            const grid = document.getElementById('price-grid');
+        // ═══════════════════════════════════════════════════
+        //  TIME AGO HELPER
+        // ═══════════════════════════════════════════════════
+        function getTimeAgo(dateStr) {
+            if (!dateStr) return '';
+            try {
+                const date = new Date(dateStr);
+                const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+                if (diff < 60) return 'just now';
+                if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+                if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+                if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+                return date.toLocaleDateString();
+            } catch { return dateStr; }
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  MARKET OVERVIEW
+        // ═══════════════════════════════════════════════════
+        async function refreshMarket() {
+            const data = await fetchJSON('/api/market-overview');
+            const bar = document.getElementById('market-bar');
             if (!data || Object.keys(data).length === 0) {
-                grid.innerHTML = '<div class="loading">Belum ada data harga. Klik Scan Now.</div>';
+                bar.innerHTML = '<div class="loading">Market data unavailable</div>';
                 return;
             }
+            bar.innerHTML = Object.entries(data).map(([name, info]) => `
+                <div class="market-item">
+                    <span class="name">${name}</span>
+                    <span class="value">${info.price?.toLocaleString() || '-'}</span>
+                    <span class="change ${info.change_pct >= 0 ? 'up' : 'down'}">
+                        ${info.change_pct >= 0 ? '+' : ''}${info.change_pct?.toFixed(2) || 0}%
+                    </span>
+                </div>
+            `).join('');
+        }
 
-            grid.innerHTML = Object.entries(data).map(([ticker, info]) => {
+        // ═══════════════════════════════════════════════════
+        //  PRICES
+        // ═══════════════════════════════════════════════════
+        async function refreshPrices() {
+            const data = await fetchJSON('/api/prices');
+            const tbody = document.getElementById('price-tbody');
+            if (!data || Object.keys(data).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No data. Click SCAN.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = Object.entries(data).map(([ticker, info]) => {
                 const change = info.change_pct || 0;
                 const cls = change >= 0 ? 'up' : 'down';
                 const sign = change >= 0 ? '+' : '';
@@ -166,135 +1217,680 @@
                     ? `Rp${(info.price || 0).toLocaleString('id-ID')}`
                     : `$${(info.price || 0).toLocaleString('en-US', {minimumFractionDigits:2})}`;
                 return `
-                    <div class="price-card" onclick="showAnalysis('${ticker}')">
-                        <div class="ticker">${ticker}</div>
-                        <div class="price">${priceStr}</div>
-                        <div class="change ${cls}">${sign}${change.toFixed(2)}%</div>
-                    </div>
+                    <tr onclick="selectTicker('${ticker}', this)" class="${selectedTicker === ticker ? 'selected' : ''}">
+                        <td class="ticker-cell">${ticker}</td>
+                        <td class="price-cell">${priceStr}</td>
+                        <td class="change-cell change ${cls}">${sign}${change.toFixed(2)}%</td>
+                        <td class="volume-cell">${(info.volume || 0).toLocaleString()}</td>
+                    </tr>
                 `;
             }).join('');
         }
 
-        async function refreshAlerts() {
-            const data = await fetchJSON('/api/alerts?limit=30');
-            const list = document.getElementById('alert-list');
-            if (!data || data.length === 0) {
-                list.innerHTML = '<div class="loading">Tidak ada alerts</div>';
+        // ═══════════════════════════════════════════════════
+        //  SELECT TICKER
+        // ═══════════════════════════════════════════════════
+        function selectTicker(ticker, row) {
+            selectedTicker = ticker;
+            document.getElementById('ai-ticker').value = ticker;
+            document.getElementById('ai-ticker2').value = ticker;
+            if (row) {
+                document.querySelectorAll('#price-tbody tr').forEach(tr => tr.classList.remove('selected'));
+                row.classList.add('selected');
+            }
+            loadChart(ticker);
+            loadAnalysis(ticker);
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  TRADINGVIEW CHART
+        // ═══════════════════════════════════════════════════
+        let chart = null;
+        let candleSeries = null;
+
+        async function loadChart(ticker) {
+            const container = document.getElementById('chart-container');
+            if (!container) return;
+            if (chart) { chart.remove(); chart = null; }
+
+            const data = await fetchJSON(`/api/chart/${ticker}`);
+            if (!data || !data.candles || data.candles.length === 0) {
+                container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted)">No chart data available</div>';
                 return;
             }
 
+            chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: container.clientHeight,
+                layout: { background: { color: '#111827' }, textColor: '#9ca3af' },
+                grid: { vertLines: { color: '#2d3548' }, horzLines: { color: '#2d3548' } },
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                rightPriceScale: { borderColor: '#2d3548' },
+                timeScale: { borderColor: '#2d3548', timeVisible: true },
+            });
+
+            const chartType = document.getElementById('chart-type').value;
+            if (chartType === 'candlestick') {
+                candleSeries = chart.addCandlestickSeries({
+                    upColor: '#22c55e', downColor: '#ef4444',
+                    borderDownColor: '#ef4444', borderUpColor: '#22c55e',
+                    wickDownColor: '#ef4444', wickUpColor: '#22c55e',
+                });
+                candleSeries.setData(data.candles);
+            } else if (chartType === 'line') {
+                candleSeries = chart.addLineSeries({ color: '#3b82f6', lineWidth: 2 });
+                candleSeries.setData(data.candles.map(c => ({ time: c.time, value: c.close })));
+            } else {
+                candleSeries = chart.addAreaSeries({
+                    topColor: 'rgba(59,130,246,0.4)', bottomColor: 'rgba(59,130,246,0)',
+                    lineColor: '#3b82f6', lineWidth: 2,
+                });
+                candleSeries.setData(data.candles.map(c => ({ time: c.time, value: c.close })));
+            }
+
+            if (data.volume && data.volume.length > 0) {
+                const vol = chart.addHistogramSeries({ color: '#3b82f6', priceFormat: { type: 'volume' }, priceScaleId: '' });
+                vol.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+                vol.setData(data.volume);
+            }
+
+            chart.timeScale().fitContent();
+            new ResizeObserver(entries => {
+                if (chart && entries[0]) chart.applyOptions({ width: entries[0].contentRect.width, height: entries[0].contentRect.height });
+            }).observe(container);
+        }
+
+        function changeChartType() { if (selectedTicker) loadChart(selectedTicker); }
+
+        // ═══════════════════════════════════════════════════
+        //  TECHNICAL ANALYSIS
+        // ═══════════════════════════════════════════════════
+        async function loadAnalysis(ticker) {
+            const content = document.getElementById('analysis-content');
+            const source = document.getElementById('analysis-source');
+            content.innerHTML = '<div class="loading">Loading analysis for ' + ticker + '...</div>';
+            const data = await fetchJSON(`/api/technical/${ticker}`);
+            if (!data) { content.innerHTML = '<div class="empty-state">Analysis unavailable</div>'; return; }
+            source.textContent = data.source || '';
+            const rsiClass = data.rsi < 30 ? 'signal-buy' : data.rsi > 70 ? 'signal-sell' : 'signal-neutral';
+            const macdClass = data.macd_bullish ? 'signal-buy' : 'signal-sell';
+            content.innerHTML = `
+                <div class="indicator-grid">
+                    <div class="indicator-card"><div class="indicator-label">RSI (14)</div><div class="indicator-value ${rsiClass}">${data.rsi || '-'}</div><div class="indicator-signal ${rsiClass}">${data.rsi < 30 ? 'OVERSOLD' : data.rsi > 70 ? 'OVERBOUGHT' : 'NEUTRAL'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">MACD</div><div class="indicator-value ${macdClass}">${data.macd?.toFixed(4) || '-'}</div><div class="indicator-signal ${macdClass}">${data.macd_bullish ? 'BULLISH' : 'BEARISH'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">SMA 20</div><div class="indicator-value">${data.sma20 || '-'}</div><div class="indicator-signal ${data.price > data.sma20 ? 'signal-buy' : 'signal-sell'}">${data.price > data.sma20 ? 'ABOVE' : 'BELOW'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">SMA 50</div><div class="indicator-value">${data.sma50 || '-'}</div><div class="indicator-signal ${data.price > data.sma50 ? 'signal-buy' : 'signal-sell'}">${data.price > data.sma50 ? 'ABOVE' : 'BELOW'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">ADX</div><div class="indicator-value">${data.adx || '-'}</div><div class="indicator-signal ${data.adx > 25 ? 'signal-buy' : 'signal-neutral'}">${data.adx > 25 ? 'STRONG TREND' : 'WEAK TREND'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">ATR</div><div class="indicator-value">${data.atr || '-'}</div><div class="indicator-signal signal-neutral">VOLATILITY</div></div>
+                </div>
+                <div style="margin-bottom:12px"><div style="color:var(--text-muted);font-size:10px;margin-bottom:4px">BOLLINGER BANDS</div><div style="display:flex;justify-content:space-between;font-size:11px"><span>Upper: ${data.bb_upper || '-'}</span><span>Mid: ${data.bb_middle || '-'}</span><span>Lower: ${data.bb_lower || '-'}</span></div></div>
+                <div><div style="color:var(--text-muted);font-size:10px;margin-bottom:4px">SIGNALS</div><div style="display:flex;gap:6px;flex-wrap:wrap">${(data.signals || []).map(s => `<span class="notif-badge ${s.includes('BULL')||s.includes('UP')||s.includes('OVERSOLD')?'active':s.includes('BEAR')||s.includes('DOWN')||s.includes('OVERBOUGHT')?'':'inactive'}" style="${s.includes('BEAR')||s.includes('DOWN')||s.includes('OVERBOUGHT')?'background:rgba(239,68,68,0.2);color:var(--red)':''}">${s}</span>`).join('')}</div></div>
+            `;
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  ALERTS
+        // ═══════════════════════════════════════════════════
+        async function refreshAlerts() {
+            const data = await fetchJSON('/api/alerts?limit=20');
+            const list = document.getElementById('alert-list');
+            if (!data || data.length === 0) { list.innerHTML = '<div class="empty-state">No alerts</div>'; return; }
             list.innerHTML = data.map(a => `
                 <div class="alert-item ${a.severity || 'info'}">
-                    <div>${a.message}</div>
                     <div class="alert-time">${a.created_at || ''}</div>
+                    <div class="alert-message">${a.message}</div>
                 </div>
             `).join('');
         }
 
-        async function refreshMarketOverview() {
-            const data = await fetchJSON('/api/market-overview');
-            const el = document.getElementById('market-overview');
-            if (!data || Object.keys(data).length === 0) {
-                el.innerHTML = '<div class="loading">Gagal memuat market overview</div>';
-                return;
-            }
-
-            el.innerHTML = Object.entries(data).map(([name, info]) => `
-                <div class="market-item">
-                    <div class="name">${name}</div>
-                    <div class="value">${info.status || ''} ${info.price?.toLocaleString() || '-'}</div>
-                    <div class="change ${info.change_pct >= 0 ? 'up' : 'down'}">
-                        ${info.change_pct >= 0 ? '+' : ''}${info.change_pct?.toFixed(2) || 0}%
+        async function refreshAllAlerts() {
+            const data = await fetchJSON('/api/alerts?limit=50');
+            const list = document.getElementById('all-alerts-list');
+            if (!data || data.length === 0) { list.innerHTML = '<div class="empty-state">No alerts yet. Click SCAN to start monitoring.</div>'; return; }
+            list.innerHTML = data.map(a => `
+                <div class="alert-item ${a.severity || 'info'}" style="padding:12px 16px">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div class="alert-message" style="font-size:13px">${a.message}</div>
+                        <span style="font-size:10px;padding:2px 6px;border-radius:2px;background:${a.severity==='critical'?'rgba(239,68,68,0.2)':a.severity==='warning'?'rgba(234,179,8,0.2)':'rgba(59,130,246,0.2)'};color:${a.severity==='critical'?'var(--red)':a.severity==='warning'?'var(--yellow)':'var(--blue)'}">${(a.severity||'info').toUpperCase()}</span>
                     </div>
+                    <div class="alert-time" style="margin-top:4px">${a.ticker || ''} &middot; ${a.created_at || ''}</div>
+                    ${a.data && a.data !== '{}' ? `<div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Change: ${JSON.parse(a.data).change_pct || '-'}%</div>` : ''}
                 </div>
             `).join('');
         }
 
-        async function refreshNotifStatus() {
-            const data = await fetchJSON('/api/notifications/status');
-            const el = document.getElementById('notif-status');
-            if (!data) return;
-
-            el.innerHTML = (data.channels || []).map(ch =>
-                `<span class="notif-badge active">✓ ${ch}</span>`
-            ).join('');
-
-            if (data.channels.length === 0) {
-                el.innerHTML = '<span class="notif-badge inactive">Tidak ada channel aktif</span>';
-            }
-        }
-
-        async function scanNow() {
-            try {
-                const res = await fetch(API + '/api/scan', { method: 'POST' });
-                const data = await res.json();
-                alert(`Scan selesai! ${data.prices_count} harga, ${data.alerts_count} alerts`);
-                refreshPrices();
-                refreshAlerts();
-            } catch(e) {
-                alert('Gagal scan: ' + e.message);
-            }
-        }
-
+        // ═══════════════════════════════════════════════════
+        //  WATCHLIST MANAGEMENT
+        // ═══════════════════════════════════════════════════
         async function addTicker() {
             const input = document.getElementById('add-ticker');
             const ticker = input.value.trim().toUpperCase();
             if (!ticker) return;
+            await fetch(API + '/api/watchlist/add', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ticker})
+            });
+            input.value = '';
+            refreshPrices();
+            addNotif('Ticker Added', `${ticker} has been added to your watchlist`, 'System');
+        }
 
+        async function removeTicker(ticker) {
+            await fetch(API + '/api/watchlist/remove', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ticker})
+            });
+            refreshPrices();
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  STOCK SEARCH
+        // ═══════════════════════════════════════════════════
+        let searchTimeout;
+        async function searchStock(query) {
+            clearTimeout(searchTimeout);
+            const resultsDiv = document.getElementById('search-results');
+            if (query.length < 1) { resultsDiv.style.display = 'none'; return; }
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(API + `/api/search?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    if (data.results && data.results.length > 0) {
+                        resultsDiv.innerHTML = data.results.map(r => `
+                            <div style="padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between"
+                                 onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'"
+                                 onclick="selectSearchResult('${r.ticker}')">
+                                <span style="color:var(--orange);font-weight:bold">${r.ticker}</span>
+                                <span style="color:var(--text-secondary);font-size:11px;flex:1;margin-left:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.name}</span>
+                                <span style="color:var(--text-muted);font-size:10px">${r.exchange}</span>
+                            </div>
+                        `).join('');
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<div style="padding:10px;color:var(--text-muted)">No results found</div>';
+                        resultsDiv.style.display = 'block';
+                    }
+                } catch (e) { resultsDiv.style.display = 'none'; }
+            }, 300);
+        }
+
+        function selectSearchResult(ticker) {
+            document.getElementById('stock-search').value = ticker;
+            document.getElementById('search-results').style.display = 'none';
+            // Switch to watchlist tab and select
+            showTab('watchlist', document.querySelector('#topbar-menu button'));
+            setTimeout(() => {
+                // Find row and select
+                const rows = document.querySelectorAll('#price-tbody tr');
+                for (const r of rows) {
+                    if (r.querySelector('.ticker-cell')?.textContent === ticker) {
+                        selectTicker(ticker, r);
+                        return;
+                    }
+                }
+                // Not in list yet, just load chart/analysis
+                selectTicker(ticker, null);
+            }, 500);
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-box')) document.getElementById('search-results').style.display = 'none';
+        });
+
+        // ═══════════════════════════════════════════════════
+        //  MARKET FILTER
+        // ═══════════════════════════════════════════════════
+        function filterByMarket() {
+            const filter = document.getElementById('market-filter').value;
+            document.querySelectorAll('#price-tbody tr').forEach(row => {
+                const tickerCell = row.querySelector('.ticker-cell');
+                if (!tickerCell) return;
+                const ticker = tickerCell.textContent.trim();
+                let show = filter === 'ALL' ||
+                    (filter === 'IDX' && ticker.endsWith('.JK')) ||
+                    (filter === 'US' && !ticker.endsWith('.JK') && !ticker.includes('-USD') && !ticker.startsWith('BTC') && !ticker.startsWith('ETH')) ||
+                    (filter === 'CRYPTO' && (ticker.includes('-USD') || ticker.startsWith('BTC') || ticker.startsWith('ETH')));
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  NEWS
+        // ═══════════════════════════════════════════════════
+        let currentNews = [];
+
+        async function refreshNews() {
+            const market = document.getElementById('news-market').value;
+            const ticker = selectedTicker || '';
+            const newsList = document.getElementById('news-list');
             try {
-                await fetch(API + '/api/watchlist/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ticker })
-                });
-                input.value = '';
-                alert(`${ticker} ditambahkan ke watchlist`);
-                refreshPrices();
-            } catch(e) {
-                alert('Gagal: ' + e.message);
+                const res = await fetch(API + `/api/news?ticker=${ticker}&market=${market}&limit=15`);
+                const data = await res.json();
+                if (data.news && data.news.length > 0) {
+                    currentNews = data.news;
+                    newsList.innerHTML = data.news.map(n => {
+                        const timeAgo = getTimeAgo(n.pub_date);
+                        const tickers = n.tickers && n.tickers.length > 0
+                            ? `<span style="color:var(--orange);font-size:10px">${n.tickers.slice(0,3).join(', ')}</span>` : '';
+                        return `
+                            <a href="${n.link}" target="_blank" style="display:block;padding:8px 10px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;transition:background 0.15s"
+                               onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                                <div style="font-size:12px;color:var(--text-primary);line-height:1.4;margin-bottom:4px">${n.title}</div>
+                                <div style="display:flex;justify-content:space-between;align-items:center">
+                                    <span style="font-size:10px;color:var(--text-muted)">${n.source} &middot; ${timeAgo}</span>
+                                    ${tickers}
+                                </div>
+                            </a>`;
+                    }).join('');
+                } else {
+                    newsList.innerHTML = '<div style="padding:10px;color:var(--text-muted)">No news available</div>';
+                }
+            } catch (e) {
+                newsList.innerHTML = '<div style="padding:10px;color:var(--red)">Error loading news</div>';
             }
         }
 
-        async function analyzeNow() {
-            const ticker = document.getElementById('analyze-ticker').value.trim().toUpperCase();
-            if (!ticker) { alert('Masukkan ticker'); return; }
-
-            const panel = document.getElementById('analysis-panel');
-            panel.innerHTML = '<div class="loading">🧠 Sedang menganalisis ' + ticker + '... (mungkin butuh 1-2 menit)</div>';
-
+        async function analyzeNewsSentiment() {
+            const sentimentDiv = document.getElementById('news-sentiment');
+            sentimentDiv.style.display = 'block';
+            sentimentDiv.innerHTML = '<div style="color:var(--cyan)">Analyzing news sentiment...</div>';
+            if (currentNews.length === 0) await refreshNews();
             try {
-                const res = await fetch(API + `/api/analyze/${ticker}`, { method: 'POST' });
+                const res = await fetch(API + '/api/news/analyze', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({news: currentNews})
+                });
                 const data = await res.json();
-
-                if (data.decision) {
-                    const icons = { BUY: '🟢 BELI', SELL: '🔴 JUAL', HOLD: '🟡 TAHAN' };
-                    panel.innerHTML = `
-                        <div style="margin-bottom:10px">
-                            <strong>Keputusan:</strong> ${icons[data.decision] || data.decision}
-                        </div>
-                        <pre>${data.summary || JSON.stringify(data, null, 2)}</pre>
-                    `;
+                if (data.analysis) {
+                    const a = data.analysis;
+                    const c = a.overall_sentiment === 'POSITIVE' ? 'var(--green)' : a.overall_sentiment === 'NEGATIVE' ? 'var(--red)' : 'var(--yellow)';
+                    sentimentDiv.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-weight:bold;color:${c}">${a.overall_sentiment || 'NEUTRAL'}</span><span style="font-size:12px">Score: <span style="color:${c};font-weight:bold">${a.sentiment_score ? (a.sentiment_score*100).toFixed(0) : '50'}%</span></span></div><div style="font-size:11px;color:var(--text-secondary)">${a.impact_summary || ''}</div>`;
                 } else {
-                    panel.innerHTML = `<div class="error">${data.detail || 'Analisis gagal'}</div>`;
+                    sentimentDiv.innerHTML = '<div style="color:var(--text-muted)">Unable to analyze sentiment</div>';
+                }
+            } catch (e) {
+                sentimentDiv.innerHTML = '<div style="color:var(--red)">Error analyzing sentiment</div>';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  HOT NEWS + NOTIFICATIONS
+        // ═══════════════════════════════════════════════════
+        let hotNewsData = [];
+        let hotNewsDismissed = localStorage.getItem('hotNewsDismissed') === 'true';
+
+        async function refreshHotNews() {
+            try {
+                const res = await fetch(API + '/api/hot-news');
+                const data = await res.json();
+                if (data.hot_news && data.hot_news.length > 0) {
+                    hotNewsData = data.hot_news;
+                    renderHotNews(data);
+                    // Create notifications for new hot news
+                    data.hot_news.forEach(n => {
+                        addNotif('[HOT] ' + n.title, n.description || '', n.source || 'Breaking News', n.link);
+                    });
+                }
+            } catch (e) { console.error('Error loading hot news:', e); }
+        }
+
+        function renderHotNews(data) {
+            const banner = document.getElementById('hot-news-banner');
+            const ticker = document.getElementById('hot-news-ticker');
+            if (!banner || !ticker) return;
+            if (!hotNewsDismissed) banner.style.display = 'block';
+            const newsHTML = data.hot_news.map(n => `
+                <div class="hot-news-item">
+                    <span class="source">[${n.source || 'NEWS'}]</span>
+                    <a href="${n.link}" target="_blank" style="color:inherit;text-decoration:none"><span class="title">${n.title}</span></a>
+                </div>
+            `).join('');
+            ticker.innerHTML = newsHTML + newsHTML;
+            const detailDiv = document.getElementById('hot-news-detail');
+            if (data.impact_analysis && data.impact_analysis.impacts) {
+                detailDiv.innerHTML = `<div style="font-size:11px;color:var(--orange);font-weight:bold;margin-bottom:8px">AI MARKET IMPACT</div>${data.impact_analysis.impacts.map(imp => {
+                    const ic = imp.impact_level === 'HIGH' ? 'impact-high' : imp.impact_level === 'MEDIUM' ? 'impact-medium' : 'impact-low';
+                    return `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;padding:6px;background:var(--bg-card);border:1px solid var(--border)"><span class="impact-badge ${ic}">${imp.impact_level}</span><span style="color:var(--cyan);font-size:10px;min-width:40px">${imp.affected_market}</span><div style="flex:1"><div style="color:var(--text-primary);font-size:11px">${imp.title}</div><div style="color:var(--text-muted);font-size:10px;margin-top:2px">${imp.brief}</div></div></div>`;
+                }).join('')}`;
+            } else {
+                detailDiv.innerHTML = `<div style="font-size:11px;color:var(--orange);font-weight:bold;margin-bottom:8px">TOP HEADLINES</div>${data.hot_news.map(n => `<div style="padding:6px;border-bottom:1px solid var(--border)"><a href="${n.link}" target="_blank" style="color:var(--text-primary);text-decoration:none;font-size:11px">${n.title}</a><div style="color:var(--text-muted);font-size:10px;margin-top:2px">${n.source} &middot; ${getTimeAgo(n.pub_date)}</div></div>`).join('')}`;
+            }
+        }
+
+        function toggleHotNewsDetail() {
+            const d = document.getElementById('hot-news-detail');
+            d.style.display = d.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function closeHotNews() {
+            document.getElementById('hot-news-banner').style.display = 'none';
+            hotNewsDismissed = true;
+            localStorage.setItem('hotNewsDismissed', 'true');
+        }
+
+        function checkHotNews() {
+            const lastVisit = localStorage.getItem('lastVisitTime');
+            const now = Date.now();
+            if (lastVisit && (now - parseInt(lastVisit)) > 86400000) {
+                hotNewsDismissed = false;
+                localStorage.removeItem('hotNewsDismissed');
+            }
+            localStorage.setItem('lastVisitTime', now.toString());
+            refreshHotNews();
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  ANALYSIS TAB - FULL AI ANALYSIS
+        // ═══════════════════════════════════════════════════
+        async function analyzeAI2() {
+            const ticker = document.getElementById('ai-ticker2').value.trim().toUpperCase();
+            if (!ticker) return;
+            const content = document.getElementById('ai-content2');
+            content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--cyan)"><div style="font-size:32px;margin-bottom:12px">&#129504;</div>Analyzing ' + ticker + '... This may take 30-60 seconds.</div>';
+            try {
+                const res = await fetch(API + `/api/analyze/${ticker}`, {method: 'POST'});
+                const data = await res.json();
+                if (data.decision) {
+                    const icons = {BUY: '&#128994; BUY', SELL: '&#128308; SELL', HOLD: '&#128992; HOLD'};
+                    content.innerHTML = `
+                        <div style="margin-bottom:16px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:4px">
+                            <div style="font-size:16px;font-weight:bold;color:var(--orange);margin-bottom:4px">${ticker}</div>
+                            <div style="font-size:14px;font-weight:bold;margin-bottom:8px">${icons[data.decision] || data.decision}</div>
+                            <div style="font-size:11px;color:var(--text-muted)">Confidence: ${((data.confidence || 0) * 100).toFixed(0)}%</div>
+                        </div>
+                        <pre style="white-space:pre-wrap;font-size:12px;line-height:1.6;color:var(--text-primary)">${data.summary || ''}</pre>
+                    `;
+                    // Add to history
+                    const hist = document.getElementById('analysis-history');
+                    const item = document.createElement('div');
+                    item.style.cssText = 'padding:10px;border-bottom:1px solid var(--border);cursor:pointer';
+                    item.innerHTML = `<div style="display:flex;justify-content:space-between"><span style="color:var(--cyan);font-weight:bold">${ticker}</span><span style="font-size:10px;color:var(--text-muted)">${new Date().toLocaleTimeString()}</span></div><div style="font-size:11px;margin-top:4px">${icons[data.decision] || data.decision}</div>`;
+                    item.onclick = () => { document.getElementById('ai-ticker2').value = ticker; analyzeAI2(); };
+                    hist.prepend(item);
+                } else {
+                    content.innerHTML = `<div style="color:var(--red);padding:20px">${data.detail || 'Analysis failed'}</div>`;
                 }
             } catch(e) {
-                panel.innerHTML = `<div class="error">Error: ${e.message}</div>`;
+                content.innerHTML = `<div style="color:var(--red);padding:20px">Error: ${e.message}</div>`;
             }
         }
 
-        function showAnalysis(ticker) {
-            document.getElementById('analyze-ticker').value = ticker;
+        async function quickTechAnalysis() {
+            const ticker = document.getElementById('ai-ticker2').value.trim().toUpperCase();
+            if (!ticker) return;
+            const content = document.getElementById('ai-content2');
+            content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--cyan)">Loading technical analysis...</div>';
+            const data = await fetchJSON(`/api/technical/${ticker}`);
+            if (!data) { content.innerHTML = '<div style="color:var(--red);padding:20px">No data available</div>'; return; }
+            const rsiClass = data.rsi < 30 ? 'signal-buy' : data.rsi > 70 ? 'signal-sell' : 'signal-neutral';
+            content.innerHTML = `
+                <div style="margin-bottom:16px"><span style="font-size:18px;font-weight:bold;color:var(--orange)">${ticker}</span> <span style="font-size:14px">$${data.price || '-'}</span></div>
+                <div class="indicator-grid">
+                    <div class="indicator-card"><div class="indicator-label">RSI</div><div class="indicator-value ${rsiClass}">${data.rsi || '-'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">MACD</div><div class="indicator-value ${data.macd_bullish?'signal-buy':'signal-sell'}">${data.macd?.toFixed(4) || '-'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">SMA20</div><div class="indicator-value">${data.sma20 || '-'}</div></div>
+                    <div class="indicator-card"><div class="indicator-label">SMA50</div><div class="indicator-value">${data.sma50 || '-'}</div></div>
+                </div>
+                <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${(data.signals||[]).map(s => `<span class="notif-badge ${s.includes('BULL')||s.includes('UP')?'active':s.includes('BEAR')||s.includes('DOWN')?'':'inactive'}" style="${s.includes('BEAR')||s.includes('DOWN')?'background:rgba(239,68,68,0.2);color:var(--red)':''}">${s}</span>`).join('')}</div>
+            `;
         }
 
-        // Auto-refresh
-        refreshPrices();
-        refreshAlerts();
-        refreshMarketOverview();
-        refreshNotifStatus();
+        function loadAnalysisHistory() {
+            // Placeholder - history is kept in DOM during session
+        }
 
-        setInterval(refreshPrices, 60000);
-        setInterval(refreshAlerts, 30000);
-        setInterval(refreshMarketOverview, 300000);
+        // ═══════════════════════════════════════════════════
+        //  AI ANALYSIS (sidebar)
+        // ═══════════════════════════════════════════════════
+        async function analyzeAI() {
+            const ticker = document.getElementById('ai-ticker').value.trim().toUpperCase();
+            if (!ticker) return;
+            const content = document.getElementById('ai-content');
+            content.innerHTML = '<div class="loading">Analyzing ' + ticker + '...</div>';
+            try {
+                const res = await fetch(API + `/api/analyze/${ticker}`, {method: 'POST'});
+                const data = await res.json();
+                if (data.decision) {
+                    const icons = {BUY: 'BUY', SELL: 'SELL', HOLD: 'HOLD'};
+                    content.innerHTML = `<div style="color:var(--orange);font-weight:bold;margin-bottom:8px">${icons[data.decision] || data.decision}</div><div style="white-space:pre-wrap">${data.summary || ''}</div>`;
+                    addNotif(`AI Analysis: ${ticker}`, `${data.decision} - Confidence: ${((data.confidence||0)*100).toFixed(0)}%`, 'AI Engine');
+                } else {
+                    content.innerHTML = `<div style="color:var(--red)">${data.detail || 'Analysis failed'}</div>`;
+                }
+            } catch(e) {
+                content.innerHTML = `<div style="color:var(--red)">Error: ${e.message}</div>`;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  SCAN
+        // ═══════════════════════════════════════════════════
+        async function scanNow() {
+            const res = await fetch(API + '/api/scan', {method: 'POST'});
+            const data = await res.json();
+            refreshPrices();
+            refreshAlerts();
+            addNotif('Scan Complete', `${data.prices_count || 0} prices, ${data.alerts_count || 0} alerts`, 'Scanner');
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  COMMAND LINE
+        // ═══════════════════════════════════════════════════
+        async function executeCommand() {
+            const input = document.getElementById('command-input');
+            const cmd = input.value.trim().toLowerCase();
+            input.value = '';
+            if (!cmd) return;
+            const parts = cmd.split(' ');
+            const action = parts[0];
+            const arg = parts[1]?.toUpperCase();
+            switch(action) {
+                case 'scan': await scanNow(); break;
+                case 'analyze':
+                    if (arg) { document.getElementById('ai-ticker').value = arg; document.getElementById('ai-ticker2').value = arg; await analyzeAI(); }
+                    break;
+                case 'add':
+                    if (arg) { document.getElementById('add-ticker').value = arg; await addTicker(); }
+                    break;
+                case 'remove': if (arg) await removeTicker(arg); break;
+                case 'refresh': await refreshPrices(); await refreshMarket(); break;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  NOTIFICATION STATUS
+        // ═══════════════════════════════════════════════════
+        async function refreshNotifStatus() {
+            const data = await fetchJSON('/api/notifications/status');
+            const el = document.getElementById('notif-channels');
+            if (!data) return;
+            el.innerHTML = (data.channels || []).map(ch =>
+                `<span class="notif-badge active">${ch}</span>`
+            ).join(' ');
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  INIT
+        // ═══════════════════════════════════════════════════
+        async function init() {
+            document.getElementById('price-tbody').innerHTML = '<tr><td colspan="4" class="loading">Fetching live data...</td></tr>';
+            document.getElementById('market-bar').innerHTML = '<div class="loading">Loading market data...</div>';
+            updateNotifBadge();
+            checkHotNews();
+            await Promise.all([refreshMarket(), refreshPrices(), refreshAlerts(), refreshNews(), refreshNotifStatus()]);
+            try {
+                const status = await fetchJSON('/api/status');
+                const interval = (status?.config?.refresh_interval || 15) * 1000;
+                setInterval(refreshPrices, interval);
+                setInterval(refreshMarket, interval * 2);
+                setInterval(refreshAlerts, interval * 2);
+                setInterval(refreshNews, interval * 4);
+                setInterval(refreshHotNews, interval * 20);
+            } catch(e) {
+                setInterval(refreshPrices, 15000);
+                setInterval(refreshMarket, 30000);
+                setInterval(refreshAlerts, 30000);
+                setInterval(refreshHotNews, 300000);
+            }
+        }
+
+        init();
+
+        // ═══════════════════════════════════════════════════
+        //  NEWS ENGINE (zero AI cost)
+        // ═══════════════════════════════════════════════════
+        let _newsData = [];
+
+        function sentimentColor(s) {
+            return s === 'POSITIVE' ? '#00ff88' : s === 'NEGATIVE' ? '#ff4444' : '#ffaa00';
+        }
+        function sentimentBadge(s) {
+            const c = sentimentColor(s);
+            return `<span style="background:${c}22;color:${c};padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">${s}</span>`;
+        }
+        function impactBadge(i) {
+            const c = i === 'HIGH' ? '#ff4444' : i === 'MEDIUM' ? '#ffaa00' : '#666';
+            return `<span style="background:${c}22;color:${c};padding:1px 5px;border-radius:3px;font-size:9px">${i}</span>`;
+        }
+
+        async function loadNewsTab() {
+            const market = document.getElementById('news-market-filter').value;
+            document.getElementById('news-loading-indicator').textContent = '&#9203;';
+            try {
+                const res = await fetch(`${API}/api/news/scored?market=${market}&limit=30`);
+                const data = await res.json();
+                _newsData = data.articles || [];
+                renderNewsAggregate(data.aggregate);
+                filterNewsList();
+                loadSuggestions();
+            } catch (e) {
+                document.getElementById('news-list').innerHTML = `<div class="empty-state">Error loading news</div>`;
+            }
+            document.getElementById('news-loading-indicator').textContent = '';
+        }
+
+        function filterNewsList() {
+            const sFilter = document.getElementById('news-sentiment-filter').value;
+            const iFilter = document.getElementById('news-impact-filter').value;
+            let filtered = _newsData;
+            if (sFilter !== 'ALL') filtered = filtered.filter(a => a.sentiment === sFilter);
+            if (iFilter !== 'ALL') filtered = filtered.filter(a => a.impact === iFilter);
+            renderNewsList(filtered);
+        }
+
+        function renderNewsList(articles) {
+            const el = document.getElementById('news-list');
+            document.getElementById('news-count-label').textContent = `${articles.length} ARTICLES`;
+            if (!articles.length) {
+                el.innerHTML = '<div class="empty-state">No articles match filters</div>';
+                return;
+            }
+            el.innerHTML = articles.map(a => {
+                const ago = getTimeAgo(new Date(a.published || Date.now()).toISOString());
+                const topics = (a.topics || []).map(t => `<span style="background:var(--bg-secondary);padding:1px 5px;border-radius:3px;font-size:9px;color:var(--text-secondary)">${t}</span>`).join(' ');
+                return `
+                    <div class="terminal-panel" style="padding:8px;cursor:pointer;border-left:3px solid ${sentimentColor(a.sentiment)}" onclick="window.open('${a.link || '#'}','_blank')">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                            <div style="flex:1;min-width:0">
+                                <div style="font-size:11px;font-weight:600;color:var(--text-primary);margin-bottom:3px;line-height:1.3">${a.title || 'Untitled'}</div>
+                                <div style="font-size:10px;color:var(--text-secondary);line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${a.summary || a.description || ''}</div>
+                                <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+                                    ${sentimentBadge(a.sentiment)}
+                                    ${impactBadge(a.impact)}
+                                    ${topics}
+                                </div>
+                            </div>
+                            <div style="text-align:right;white-space:nowrap">
+                                <div style="font-size:9px;color:var(--text-secondary)">${ago}</div>
+                                <div style="font-size:9px;color:var(--text-secondary);margin-top:2px">${a.source || ''}</div>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderNewsAggregate(agg) {
+            if (!agg) return;
+            const bar = document.getElementById('news-agg-bar');
+            const sr = agg.sentiment_ratio || {};
+            bar.innerHTML = `
+                <span style="color:#00ff88">&#9650; ${(sr.positive*100||0).toFixed(0)}%</span>
+                <span style="color:#ffaa00">&#9679; ${(sr.neutral*100||0).toFixed(0)}%</span>
+                <span style="color:#ff4444">&#9660; ${(sr.negative*100||0).toFixed(0)}%</span>
+                <span style="color:var(--text-secondary)">|</span>
+                <span style="color:var(--text-secondary)">${agg.total} articles</span>`;
+
+            const topicsEl = document.getElementById('news-topics');
+            const topics = agg.top_topics || [];
+            if (topics.length) {
+                topicsEl.innerHTML = topics.map(([topic, count]) => {
+                    const pct = Math.round(count / (agg.total||1) * 100);
+                    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border)">
+                        <span style="font-size:10px;color:var(--text-primary)">${topic}</span>
+                        <span style="font-size:10px;color:var(--text-secondary)">${count} (${pct}%)</span>
+                    </div>`;
+                }).join('');
+            } else {
+                topicsEl.innerHTML = '<div style="font-size:10px;color:var(--text-secondary)">No topics detected</div>';
+            }
+        }
+
+        async function loadSuggestions() {
+            try {
+                const market = document.getElementById('news-market-filter')?.value || 'ALL';
+                const res = await fetch(`${API}/api/news/suggestions?market=${market}&limit=20`);
+                const data = await res.json();
+                const el = document.getElementById('news-suggestions');
+                const s = data.suggestions || [];
+                if (!s.length) { el.innerHTML = '<div style="font-size:10px;color:var(--text-secondary)">No suggestions</div>'; return; }
+                el.innerHTML = s.map(item => `
+                    <div style="padding:5px 0;border-bottom:1px solid var(--border)">
+                        <div style="font-size:10px;font-weight:600;color:var(--text-primary)">${item.icon || ''} ${item.title}</div>
+                        ${item.detail ? `<div style="font-size:9px;color:var(--text-secondary);margin-top:2px">${item.detail}</div>` : ''}
+                        ${item.action ? `<div style="font-size:9px;color:var(--orange);margin-top:2px">&#10148; ${item.action}</div>` : ''}
+                    </div>`).join('');
+            } catch (e) {}
+        }
+
+        // ═══════════════════════════════════════════════════
+        //  RESIZABLE PANELS
+        // ═══════════════════════════════════════════════════
+        (function() {
+            const MIN = 60;
+            function initDrag(handle) {
+                const isH = handle.classList.contains('resize-h');
+                handle.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    let prev = handle.previousElementSibling;
+                    let next = handle.nextElementSibling;
+                    if (!prev || !next) return;
+                    const startMouse = isH ? e.clientY : e.clientX;
+                    const startPrev = isH ? prev.offsetHeight : prev.offsetWidth;
+                    const startNext = isH ? next.offsetHeight : next.offsetWidth;
+                    document.body.style.cursor = isH ? 'row-resize' : 'col-resize';
+                    document.body.style.userSelect = 'none';
+                    handle.style.background = 'var(--orange)';
+                    function onMove(ev) {
+                        const delta = (isH ? ev.clientY : ev.clientX) - startMouse;
+                        const total = startPrev + startNext;
+                        let pSize = Math.max(MIN, Math.min(total - MIN, startPrev + delta));
+                        let nSize = total - pSize;
+                        if (isH) { prev.style.height = pSize + 'px'; next.style.height = nSize + 'px'; }
+                        else { prev.style.width = pSize + 'px'; next.style.width = nSize + 'px'; }
+                        prev.style.flex = 'none'; next.style.flex = 'none';
+                    }
+                    function onUp() {
+                        document.body.style.cursor = ''; document.body.style.userSelect = '';
+                        handle.style.background = '';
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                    }
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
+            }
+            document.querySelectorAll('.resize-handle').forEach(initDrag);
+        })();
     </script>
 </body>
 </html>

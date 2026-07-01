@@ -3,11 +3,6 @@
 import logging
 import threading
 import yfinance as yf
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import numpy as np
 from datetime import datetime
 from pathlib import Path
 
@@ -15,11 +10,6 @@ logger = logging.getLogger(__name__)
 
 CHART_DIR = Path(__file__).parent.parent / "data" / "charts"
 CHART_DIR.mkdir(parents=True, exist_ok=True)
-
-# Style chart
-plt.style.use('dark_background')
-COLORS = {'price': '#00d4aa', 'ma20': '#ffaa00', 'ma50': '#ff4444',
-          'bg': '#1a1a2e', 'text': '#e0e0e0', 'green': '#00ff00', 'red': '#ff0000'}
 
 
 class TelegramBotCommands:
@@ -210,12 +200,10 @@ class TelegramBotCommands:
             self._send(chat_id, report)
 
             # Kirim grafik
-            chart = self.price_tracker.get_technical_indicators(ticker)
-            if chart:
-                from trading_assistant.analysis.chart_generator import generate_full_chart
-                chart_path = generate_full_chart(ticker)
-                if chart_path:
-                    self._send_photo(chat_id, chart_path, f"Grafik {ticker}")
+            from trading_assistant.analysis.chart_generator import generate_full_chart
+            chart_path = generate_full_chart(ticker)
+            if chart_path:
+                self._send_photo(chat_id, chart_path, f"Grafik {ticker}")
 
         except Exception as e:
             self._send(chat_id, f"Error analisis: {e}")
@@ -305,33 +293,28 @@ class TelegramBotCommands:
 
         ticker = args[0].upper()
         try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="1mo")
-            if hist.empty:
-                self._send(chat_id, f"Tidak ada data volume untuk {ticker}")
-                return
+            vol_info = self.scanner.detect_volume_spike(ticker, threshold=1.0)
+            if vol_info:
+                ratio = vol_info["ratio"]
+                if ratio >= 3:
+                    status = "🔴 VOLUME SANGAT TINGGI!"
+                elif ratio >= 2:
+                    status = "🟡 Volume tinggi"
+                elif ratio >= 1.5:
+                    status = "⚪ Sedikit lebih aktif"
+                else:
+                    status = "🟢 Normal"
 
-            current_vol = hist['Volume'].iloc[-1]
-            avg_vol = hist['Volume'].iloc[:-1].mean()
-            ratio = current_vol / avg_vol if avg_vol > 0 else 0
-
-            if ratio >= 3:
-                status = "🔴 VOLUME SANGAT TINGGI!"
-            elif ratio >= 2:
-                status = "🟡 Volume tinggi"
-            elif ratio >= 1.5:
-                status = "⚪ Sedikit lebih aktif"
+                self._send(chat_id,
+                    f"VOLUME {ticker}:\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Hari ini: {vol_info['current_volume']:,}\n"
+                    f"Rata-rata: {vol_info['avg_volume']:,}\n"
+                    f"Ratio: {ratio:.1f}x\n"
+                    f"Status: {status}"
+                )
             else:
-                status = "🟢 Normal"
-
-            self._send(chat_id,
-                f"VOLUME {ticker}:\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Hari ini: {current_vol:,}\n"
-                f"Rata-rata: {avg_vol:,.0f}\n"
-                f"Ratio: {ratio:.1f}x\n"
-                f"Status: {status}"
-            )
+                self._send(chat_id, f"Tidak ada data volume untuk {ticker}")
         except Exception as e:
             self._send(chat_id, f"Error: {e}")
 

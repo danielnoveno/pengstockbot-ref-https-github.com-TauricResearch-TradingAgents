@@ -18,17 +18,10 @@ class WatchlistManager:
         """Load default watchlist ke database jika kosong."""
         existing = self.db.get_watchlist()
         if not existing:
-            # Load IDX stocks
+            # Load all default tickers with auto-detected market
             for ticker in self.config.DEFAULT_WATCHLIST:
-                self.db.add_to_watchlist(ticker, market="IDX")
-
-            # Load US stocks
-            for ticker in self.config.US_WATCHLIST:
-                self.db.add_to_watchlist(ticker, market="US")
-
-            # Load Crypto
-            for ticker in self.config.CRYPTO_WATCHLIST:
-                self.db.add_to_watchlist(ticker, market="CRYPTO")
+                market = self._detect_market(ticker)
+                self.db.add_to_watchlist(ticker, market=market)
 
             logger.info("Default watchlist loaded ke database")
 
@@ -65,18 +58,12 @@ class WatchlistManager:
         ticker = ticker.upper()
         if ticker.endswith(".JK"):
             return "IDX"
-        elif ticker.endswith("-USD") or ticker in ("BTC", "ETH", "BNB", "SOL"):
+        elif ticker.endswith("-USD") or ticker.startswith("BTC") or ticker.startswith("ETH"):
             return "CRYPTO"
         elif any(ticker.endswith(s) for s in [".HK", ".T", ".L", ".NS", ".BO", ".TO", ".AX", ".SS", ".SZ"]):
             return "INTERNATIONAL"
         else:
             return "US"
-
-    def search(self, query: str) -> list[dict]:
-        """Cari ticker di watchlist."""
-        all_items = self.db.get_watchlist()
-        query = query.upper()
-        return [item for item in all_items if query in item["ticker"].upper()]
 
     def get_stats(self) -> dict:
         """Statistic watchlist."""
@@ -90,29 +77,3 @@ class WatchlistManager:
             "total": len(all_items),
             "by_market": markets,
         }
-
-    def format_watchlist(self) -> str:
-        """Format watchlist untuk display."""
-        all_items = self.db.get_watchlist()
-        if not all_items:
-            return "Watchlist kosong."
-
-        lines = ["📋 **WATCHLIST**", "━" * 30, ""]
-
-        # Group by market
-        by_market = {}
-        for item in all_items:
-            market = item["market"]
-            if market not in by_market:
-                by_market[market] = []
-            by_market[market].append(item)
-
-        for market, items in by_market.items():
-            lines.append(f"**{market}** ({len(items)} ticker):")
-            tickers = [item["ticker"] for item in items]
-            lines.append(f"  {', '.join(tickers[:10])}")
-            if len(tickers) > 10:
-                lines.append(f"  ... dan {len(tickers) - 10} lainnya")
-            lines.append("")
-
-        return "\n".join(lines)

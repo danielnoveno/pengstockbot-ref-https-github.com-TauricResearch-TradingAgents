@@ -35,7 +35,7 @@ class DeepAnalyzer:
             ta_config["quick_think_llm"] = self.config.QUICK_THINK_LLM
             if self.config.LLM_TEMPERATURE is not None:
                 ta_config["temperature"] = self.config.LLM_TEMPERATURE
-            ta_config["output_language"] = "Bahasa Indonesia"
+            ta_config["output_language"] = self.config.OUTPUT_LANGUAGE
 
             self._graph = TradingAgentsGraph(
                 debug=False,

@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 CHART_DIR = Path(__file__).parent.parent / "data" / "charts"
 CHART_DIR.mkdir(parents=True, exist_ok=True)
 
-# Style untuk grafik gelap
 plt.style.use('dark_background')
 COLORS = {
     'price': '#00d4aa',
@@ -30,6 +29,26 @@ COLORS = {
     'bg': '#1a1a2e',
     'text': '#e0e0e0',
 }
+
+
+def _calc_indicators(close):
+    """Shared RSI/MACD/SMA calculation — single source of truth for charts."""
+    delta = close.diff()
+    gain = delta.where(delta > 0, 0).rolling(14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+    rs = gain / loss
+    rsi = 100 - (100 / (1 + rs))
+
+    ema12 = close.ewm(span=12).mean()
+    ema26 = close.ewm(span=26).mean()
+    macd = ema12 - ema26
+    signal = macd.ewm(span=9).mean()
+    macd_hist = macd - signal
+
+    sma20 = close.rolling(20).mean()
+    sma50 = close.rolling(50).mean()
+
+    return rsi, macd, signal, macd_hist, sma20, sma50
 
 
 def generate_price_chart(ticker: str, period: str = "3mo") -> str:
@@ -50,29 +69,21 @@ def generate_price_chart(ticker: str, period: str = "3mo") -> str:
         dates = hist.index
         close = hist['Close']
         volume = hist['Volume']
+        _, _, _, _, sma20, sma50 = _calc_indicators(close)
 
-        # Moving averages
-        sma20 = close.rolling(20).mean()
-        sma50 = close.rolling(50).mean()
-
-        # Price chart
         ax1.set_facecolor(COLORS['bg'])
         ax1.plot(dates, close, color=COLORS['price'], linewidth=1.5, label='Harga')
         if not sma20.isna().all():
             ax1.plot(dates, sma20, color=COLORS['ma20'], linewidth=1, label='MA20', alpha=0.8)
         if not sma50.isna().all():
             ax1.plot(dates, sma50, color=COLORS['ma50'], linewidth=1, label='MA50', alpha=0.8)
-
-        # Fill area
         ax1.fill_between(dates, close, close.min() * 0.99, alpha=0.1, color=COLORS['price'])
-
         ax1.set_title(f'{ticker} - Harga & Moving Average', color=COLORS['text'], fontsize=14, fontweight='bold')
         ax1.legend(loc='upper left', fontsize=8)
         ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: price_fmt(x)))
         ax1.tick_params(axis='x', labelbottom=False)
         ax1.grid(True, alpha=0.2)
 
-        # Volume chart
         ax2.set_facecolor(COLORS['bg'])
         colors = [COLORS['hist_up'] if hist['Close'].iloc[i] >= hist['Open'].iloc[i]
                   else COLORS['hist_down'] for i in range(len(hist))]
@@ -80,28 +91,23 @@ def generate_price_chart(ticker: str, period: str = "3mo") -> str:
         ax2.set_ylabel('Volume', color=COLORS['text'], fontsize=10)
         ax2.grid(True, alpha=0.2)
 
-        # Format x-axis
         ax2.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
         ax2.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
         plt.xticks(rotation=45, fontsize=8)
 
-        # Add current price annotation
         last_price = close.iloc[-1]
-        last_date = dates[-1]
         ax1.annotate(
             price_fmt(last_price),
-            xy=(last_date, last_price),
+            xy=(dates[-1], last_price),
             fontsize=10, fontweight='bold', color=COLORS['price'],
             xytext=(10, 10), textcoords='offset points',
             arrowprops=dict(arrowstyle='->', color=COLORS['price']),
         )
 
         plt.tight_layout()
-
         filepath = str(CHART_DIR / f"{ticker.replace('.', '_')}_price.png")
         fig.savefig(filepath, dpi=120, bbox_inches='tight', facecolor=COLORS['bg'])
         plt.close(fig)
-
         logger.info(f"Chart tersimpan: {filepath}")
         return filepath
 
@@ -120,26 +126,12 @@ def generate_indicator_chart(ticker: str, period: str = "3mo") -> str:
 
         close = hist['Close']
         dates = hist.index
-
-        # RSI
-        delta = close.diff()
-        gain = delta.where(delta > 0, 0).rolling(14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-        rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
-
-        # MACD
-        ema12 = close.ewm(span=12).mean()
-        ema26 = close.ewm(span=26).mean()
-        macd = ema12 - ema26
-        signal = macd.ewm(span=9).mean()
-        macd_hist = macd - signal
+        rsi, macd, signal, macd_hist, _, _ = _calc_indicators(close)
 
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 5), height_ratios=[1, 1],
                                         gridspec_kw={'hspace': 0.3})
         fig.patch.set_facecolor(COLORS['bg'])
 
-        # RSI
         ax1.set_facecolor(COLORS['bg'])
         ax1.plot(dates, rsi, color=COLORS['rsi'], linewidth=1.5)
         ax1.axhline(y=70, color='red', linestyle='--', alpha=0.5, label='Overbought (70)')
@@ -152,11 +144,9 @@ def generate_indicator_chart(ticker: str, period: str = "3mo") -> str:
         ax1.tick_params(axis='x', labelbottom=False)
         ax1.grid(True, alpha=0.2)
 
-        # MACD
         ax2.set_facecolor(COLORS['bg'])
         ax2.plot(dates, macd, color=COLORS['macd'], linewidth=1.2, label='MACD')
         ax2.plot(dates, signal, color=COLORS['signal'], linewidth=1.2, label='Signal')
-
         colors_hist = [COLORS['hist_up'] if v >= 0 else COLORS['hist_down'] for v in macd_hist]
         ax2.bar(dates, macd_hist, color=colors_hist, alpha=0.5, width=0.8)
         ax2.axhline(y=0, color='white', linewidth=0.5, alpha=0.3)
@@ -164,17 +154,14 @@ def generate_indicator_chart(ticker: str, period: str = "3mo") -> str:
         ax2.legend(loc='upper left', fontsize=8)
         ax2.grid(True, alpha=0.2)
 
-        # Format x-axis
         ax2.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
         ax2.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
         plt.xticks(rotation=45, fontsize=8)
 
         plt.tight_layout()
-
         filepath = str(CHART_DIR / f"{ticker.replace('.', '_')}_indicators.png")
         fig.savefig(filepath, dpi=120, bbox_inches='tight', facecolor=COLORS['bg'])
         plt.close(fig)
-
         logger.info(f"Indicator chart tersimpan: {filepath}")
         return filepath
 
@@ -197,29 +184,13 @@ def generate_full_chart(ticker: str, period: str = "3mo") -> str:
         close = hist['Close']
         volume = hist['Volume']
         dates = hist.index
-
-        # Indicators
-        delta = close.diff()
-        gain = delta.where(delta > 0, 0).rolling(14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-        rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
-
-        ema12 = close.ewm(span=12).mean()
-        ema26 = close.ewm(span=26).mean()
-        macd = ema12 - ema26
-        signal_line = macd.ewm(span=9).mean()
-        macd_hist = macd - signal_line
-
-        sma20 = close.rolling(20).mean()
-        sma50 = close.rolling(50).mean()
+        rsi, macd, signal_line, macd_hist, sma20, sma50 = _calc_indicators(close)
 
         fig, axes = plt.subplots(4, 1, figsize=(10, 10),
                                   height_ratios=[3, 1, 1, 1],
                                   gridspec_kw={'hspace': 0.15})
         fig.patch.set_facecolor(COLORS['bg'])
 
-        # 1. Price + MA
         ax = axes[0]
         ax.set_facecolor(COLORS['bg'])
         ax.plot(dates, close, color=COLORS['price'], linewidth=1.5, label='Harga')
@@ -232,7 +203,6 @@ def generate_full_chart(ticker: str, period: str = "3mo") -> str:
         ax.tick_params(axis='x', labelbottom=False)
         ax.grid(True, alpha=0.2)
 
-        # Annotate current price
         last_price = close.iloc[-1]
         ax.annotate(
             price_fmt(last_price),
@@ -242,7 +212,6 @@ def generate_full_chart(ticker: str, period: str = "3mo") -> str:
             arrowprops=dict(arrowstyle='->', color=COLORS['price']),
         )
 
-        # 2. Volume
         ax = axes[1]
         ax.set_facecolor(COLORS['bg'])
         colors_vol = [COLORS['hist_up'] if hist['Close'].iloc[i] >= hist['Open'].iloc[i]
@@ -252,7 +221,6 @@ def generate_full_chart(ticker: str, period: str = "3mo") -> str:
         ax.tick_params(axis='x', labelbottom=False)
         ax.grid(True, alpha=0.2)
 
-        # 3. RSI
         ax = axes[2]
         ax.set_facecolor(COLORS['bg'])
         ax.plot(dates, rsi, color=COLORS['rsi'], linewidth=1.2)
@@ -265,7 +233,6 @@ def generate_full_chart(ticker: str, period: str = "3mo") -> str:
         ax.tick_params(axis='x', labelbottom=False)
         ax.grid(True, alpha=0.2)
 
-        # 4. MACD
         ax = axes[3]
         ax.set_facecolor(COLORS['bg'])
         ax.plot(dates, macd, color=COLORS['macd'], linewidth=1, label='MACD')
@@ -282,11 +249,9 @@ def generate_full_chart(ticker: str, period: str = "3mo") -> str:
         plt.xticks(rotation=45, fontsize=8)
 
         plt.tight_layout()
-
         filepath = str(CHART_DIR / f"{ticker.replace('.', '_')}_full.png")
         fig.savefig(filepath, dpi=120, bbox_inches='tight', facecolor=COLORS['bg'])
         plt.close(fig)
-
         logger.info(f"Full chart tersimpan: {filepath}")
         return filepath
 
